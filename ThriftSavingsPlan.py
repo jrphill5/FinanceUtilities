@@ -1,5 +1,5 @@
 import requests, pandas
-from StringIO import StringIO
+from io import StringIO
 from datetime import datetime, timedelta
 import time
 import matplotlib.pyplot as plt
@@ -24,7 +24,7 @@ else:
 	
 	TSP = {}
 	
-	for k, v in df.to_dict('list').iteritems():
+	for k, v in df.to_dict('list').items():
 		kn = k.strip()
 		if len(kn) > 0:
 			TSP[kn] = v
@@ -40,9 +40,9 @@ else:
 	plt.plot_date(dates, TSP['S Fund'], '-', label="S Fund")
 	plt.plot_date(dates, TSP['I Fund'], '-', label="I Fund")
 	
-	manager = plt.get_current_fig_manager()
-	manager.resize(*manager.window.maxsize())
-	manager.window.wm_geometry("+0+0")
+	#manager = plt.get_current_fig_manager()
+	#manager.resize(*manager.window.maxsize())
+	#manager.window.wm_geometry("+0+0")
 	
 	plt.xlabel('Date')
 	plt.ylabel('Share Value ($)')
@@ -65,9 +65,9 @@ else:
 		plt.plot_date(datesnl, SMA(TSP[fund + ' Fund'], nl), '-', label=fund + " Fund (" + str(nl) + " day)")
 		plt.plot_date(datesnh, SMA(TSP[fund + ' Fund'], nh), '-', label=fund + " Fund (" + str(nh) + " day)")
 		
-		manager = plt.get_current_fig_manager()
-		manager.resize(*manager.window.maxsize())
-		manager.window.wm_geometry("+0+0")
+		#manager = plt.get_current_fig_manager()
+		#manager.resize(*manager.window.maxsize())
+		#manager.window.wm_geometry("+0+0")
 
 		plt.xlabel('Date')
 		plt.ylabel('Share Value ($)')
