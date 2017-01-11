@@ -60,16 +60,18 @@ else:
         datesnl = date2num(TSP['date'][nl - 1:])
         datesnh = date2num(TSP['date'][nh - 1:])
 
-        #t = np.array(date2num(TSP['date'][nh - 1:]))
-        #f = np.array(SMA(TSP[fund + ' Fund'], nl))
-        #g = np.array(SMA(TSP[fund + ' Fund'], nh))
+        t = np.array(date2num(TSP['date'][nh - 1:]))
+        f = np.array(SMA(TSP[fund + ' Fund'], nl)[nh - nl:])
+        g = np.array(SMA(TSP[fund + ' Fund'], nh))
 
-        #print(len(t), len(f), len(g))
+        idx = np.argwhere(np.diff(np.sign(f - g)) != 0).reshape(-1)
 
         plt.title('Thrift Savings Plan ' + fund + ' Fund from ' + TSP['date'][0].strftime("%m/%d/%Y") + ' to ' + TSP['date'][len(TSP['date'])-1].strftime("%m/%d/%Y"))
         plt.plot_date(datesall, TSP[fund + ' Fund'], '-', label=fund + " Fund")
         plt.plot_date(datesnl, SMA(TSP[fund + ' Fund'], nl), '-', label=fund + " Fund (" + str(nl) + " day)")
         plt.plot_date(datesnh, SMA(TSP[fund + ' Fund'], nh), '-', label=fund + " Fund (" + str(nh) + " day)")
+
+        plt.plot(t[idx], f[idx], 'ro')
 
         #manager = plt.get_current_fig_manager()
         #manager.resize(*manager.window.maxsize())
