@@ -3,7 +3,7 @@ from io import StringIO
 from datetime import datetime, timedelta
 import time
 import matplotlib.pyplot as plt
-from matplotlib.dates import date2num
+from matplotlib.dates import date2num, num2date
 import numpy as np
 
 def SMA(a, n):
@@ -72,6 +72,10 @@ else:
         plt.plot_date(datesnh, SMA(TSP[fund + ' Fund'], nh), '-', label=fund + " Fund (" + str(nh) + " day)")
 
         plt.plot(t[idx], f[idx], 'ro')
+
+        print(fund + ' fund crossover points:')
+        for i in idx:
+            print(num2date(t[i]).strftime('%m/%d/%Y'))
 
         #manager = plt.get_current_fig_manager()
         #manager.resize(*manager.window.maxsize())
