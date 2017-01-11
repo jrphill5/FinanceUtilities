@@ -5,11 +5,14 @@ import time
 import matplotlib.pyplot as plt
 from matplotlib.dates import date2num, num2date, MonthLocator, WeekdayLocator, DateFormatter
 import numpy as np
-import sys
+import sys, os
 
 dd = 365; # number of days to plot
 nl = 10 # time period in days for short term moving average
 nh = 30 # time period in days for long term moving average
+
+imgpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'images')
+if not os.path.isdir(imgpath): os.mkdir(imgpath)
 
 def SMA(list, n):
 	ma = [np.nan]*n
@@ -36,8 +39,6 @@ if response.status_code != 200:
 	print("Error " + response.status_code)
 else:
 	df = pandas.read_csv(StringIO(response.text)).sort_values('date')
-
-	print(df)
 	
 	TSP = {}
 
@@ -51,6 +52,8 @@ else:
 	dates = date2num(TSP['date'])
 
 	fig, ax = plt.subplots()
+	
+	fig.canvas.set_window_title('All TSP Funds')
 	
 	ax.set_title('Thrift Savings Plan Funds from ' + (todaydt-timedelta(days=dd+1)).strftime("%m/%d/%Y") + ' to ' + TSP['date'][len(TSP['date'])-1].strftime("%m/%d/%Y"))
 	ax.set_xlabel('Date')
@@ -75,11 +78,14 @@ else:
 	ax.legend(loc=2)
 	
 	plt.grid(which='both')
+
+	plt.savefig(os.path.join(imgpath, '00_AllTSPFunds.png'), bbox_inches='tight')
+
 	plt.show(block=True)
 
 	plt.close()
 
-	for fund in ['G', 'F', 'C', 'S', 'I']:
+	for img, fund in {1: 'G', 2: 'F', 3: 'C', 4: 'S', 5: 'I'}.items():
 		datesall = date2num(TSP['date'])
 		datesnl = date2num(TSP['date'][nl - 1:])
 		datesnh = date2num(TSP['date'][nh - 1:])
@@ -91,6 +97,8 @@ else:
 		idx = np.argwhere(np.diff(np.sign(f-g))[nh:] != 0).reshape(-1) + nh
 		
 		fig, ax = plt.subplots()
+		
+		fig.canvas.set_window_title('TSP ' + fund + ' Fund')
 		
 		ax.set_title('Thrift Savings Plan ' + fund + ' Fund from ' + (todaydt-timedelta(days=dd+1)).strftime("%m/%d/%Y") + ' to ' + TSP['date'][len(TSP['date'])-1].strftime("%m/%d/%Y"))
 		ax.set_xlabel('Date')
@@ -137,6 +145,9 @@ else:
 		ax.legend(loc=2)
 		
 		plt.grid(which='both')
+		
+		plt.savefig(os.path.join(imgpath, '0' + str(img) + '_TSP' + fund + 'Fund.png'), bbox_inches='tight')
+		
 		plt.show(block=True)
 		
 		plt.close()
