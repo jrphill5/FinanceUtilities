@@ -53,105 +53,121 @@ def detectCrossovers(dates, smanl, smanh):
 	# Return the completed data structure
 	return crossovers
 
-# Create datetime object for today
-todaydt = datetime.now()
-
-# Create datetime object for the day dd days in the past accounting for loss due to moving average:
-startdt = datetime.now() - timedelta(days=dd+7.0/5.0*nh+1.0+3.0) # Take weekends and holidays into account
-
-# Convert datetime objects into format required by TSP fields:
-today = todaydt.strftime("%m/%d/%Y")
-start = startdt.strftime("%m/%d/%Y")
-
 # POST values to remote webserver and download CSV reply:
-sys.stdout.write('Fetching TSP data from ' + start + ' to ' + today + ' ... ')
-url = "https://www.tsp.gov/InvestmentFunds/FundPerformance/index.html"
-data = {'whichButton': 'CSV', 'startdate': start, 'enddate': today}
-response = requests.post(url, data=data)
-print('Response ' + str(response.status_code))
+def fetchTSPData(start, end):
+	sys.stdout.write('Fetching TSP data from ' + start + ' to ' + end + ' ... ')
+	url = "https://www.tsp.gov/InvestmentFunds/FundPerformance/index.html"
+	data = {'whichButton': 'CSV', 'startdate': start, 'enddate': end}
+	response = requests.post(url, data=data)
+	print('Response ' + str(response.status_code))
+	return response
 
-# If data cannot be retreived, exit the program with an error:
-if response.status_code != 200: sys.exit("Could not retrieve data from remote server.")
+# Create a clean dictionary with all CSV info from the TSP:
+def parseTSPData(response):
+	# Read in dataframe from CSV response and sort by date:
+	df = pandas.read_csv(StringIO(response.text)).sort_values('date')
 
-# Read in dataframe from CSV response and sort by date:
-df = pandas.read_csv(StringIO(response.text)).sort_values('date')
+	# Clean up text in dataframe and create a dictionary:
+	TSP = {}
+	for k, v in df.to_dict('list').items():
+		kn = k.strip()
+		if len(kn) > 0:
+			TSP[kn] = v
 
-# Clean up text in dataframe and create a dictionary:
-TSP = {}
-for k, v in df.to_dict('list').items():
-	kn = k.strip()
-	if len(kn) > 0:
-		TSP[kn] = v
+	# Convert all text dates into datetime objects:
+	TSP['date'] = [datetime.strptime(date, '%Y-%m-%d') for date in TSP['date']]
 
-# Convert all text dates into datetime objects:
-TSP['date'] = [datetime.strptime(date, '%Y-%m-%d') for date in TSP['date']]
+	return TSP
 
-# Define locators and formatters for time axis of plots:
-quarters = MonthLocator(range(1, 13), bymonthday=1, interval=3)
-months = MonthLocator(range(1, 13), bymonthday=1, interval=1)
-datefmt = DateFormatter("%b %Y")
+def definePlotLegend(ax):
+	# Display legend as well as major and minor gridlines:
+	handles, labels = ax.get_legend_handles_labels()
+	ax.legend(handles, labels, loc=8, ncol=len(labels), fontsize=12)
+	ax.grid(which='both')
 
-# Define datasets for analysis:
-dates = date2num(TSP['date'])
-
-# Define figure and axes handles:
-fig, ax = plt.subplots(figsize=(1920*10/1080.0, 10))
-
-# Set relevant titles for window, figure, and axes:
-fig.canvas.set_window_title('All TSP Funds')
-ax.set_title('Thrift Savings Plan Funds from ' + (todaydt-timedelta(days=dd+1)).strftime("%m/%d/%Y") + ' to ' + TSP['date'][len(TSP['date'])-1].strftime("%m/%d/%Y"))
-ax.set_xlabel('Close Date')
-ax.set_ylabel('Share Value ($)')
-
-# Set limits and tick intervals on the time axis:
-ax.xaxis.set_major_locator(months)
-ax.xaxis.set_major_formatter(datefmt)
-ax.xaxis.set_minor_locator(months)
-ax.set_xlim([date2num(todaydt-timedelta(days=dd+1)), date2num(TSP['date'][len(TSP['date'])-1])])
-
-# Plot prices for all funds in list:
-for fund in ['G', 'F', 'C', 'S', 'I']:
-	ax.plot_date(dates, TSP[fund + ' Fund'], '-', label=fund + ' Fund')
-
-# Display legend as well as major and minor gridlines:
-handles, labels = ax.get_legend_handles_labels()
-ax.legend(handles, labels, loc=8, ncol=len(labels), fontsize=12)
-ax.grid(which='both')
-
-# Create a directory to store images if it does not already exist:
-imgpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'images')
-if not os.path.isdir(imgpath): os.mkdir(imgpath)
-
-# Save a copy of the plot in the imgpath directory:
-plt.savefig(os.path.join(imgpath, '00_AllTSPFunds.png'), bbox_inches='tight')
-
-# Display the plot:
-plt.show(block=True)
-
-# Close the plot:
-plt.close()
-
-for img, fund in {1: 'G', 2: 'F', 3: 'C', 4: 'S', 5: 'I'}.items():
-	# Define datasets for analysis:
-	dates = np.array(date2num(TSP['date']))
-	price = np.array(TSP[fund + ' Fund'])
-	smanl = np.array(SMA(TSP[fund + ' Fund'], nl))
-	smanh = np.array(SMA(TSP[fund + ' Fund'], nh))
-
+def setupPlot():
 	# Define figure and axes handles:
 	fig, ax = plt.subplots(figsize=(1920*10/1080.0, 10))
-
-	# Set relevant titles for window, figure, and axes:
-	fig.canvas.set_window_title('TSP ' + fund + ' Fund')
-	ax.set_title('Thrift Savings Plan ' + fund + ' Fund from ' + (todaydt-timedelta(days=dd+1)).strftime("%m/%d/%Y") + ' to ' + TSP['date'][len(TSP['date'])-1].strftime("%m/%d/%Y"))
-	ax.set_xlabel('Close Date')
-	ax.set_ylabel('Share Value ($)')
 
 	# Set limits and tick intervals on the time axis:
 	ax.xaxis.set_major_locator(months)
 	ax.xaxis.set_major_formatter(datefmt)
 	ax.xaxis.set_minor_locator(months)
 	ax.set_xlim([date2num(todaydt-timedelta(days=dd+1)), date2num(TSP['date'][len(TSP['date'])-1])])
+
+	# Create a directory to store images if it does not already exist:
+	if not os.path.isdir(imgpath): os.mkdir(imgpath)
+
+	# Set labels for axes:
+	ax.set_xlabel('Close Date')
+	ax.set_ylabel('Share Value ($)')
+
+	return (fig, ax)
+
+def genPlotTitle(fig, ax, fund):
+	fig.canvas.set_window_title('TSP ' + fund)
+	ax.set_title('Thrift Savings Plan ' + fund + ' from ' + (todaydt-timedelta(days=dd+1)).strftime("%m/%d/%Y") + ' to ' + TSP['date'][len(TSP['date'])-1].strftime("%m/%d/%Y"))
+
+def plotFunds(funds):
+	# Define datasets for analysis:
+	dates = date2num(TSP['date'])
+
+	# Determine which datapoints are out of range:
+	cut = 0
+	for i, date in enumerate(dates):
+		if date > date2num((todaydt-timedelta(days=dd+1))):
+			cut = i - 1
+			break
+
+	# Trim all data points to be in range:
+	dates = dates[cut:]
+
+	# Initialize plot:
+	fig, ax = setupPlot()
+
+	# Set relevant titles for the window and figure:
+	genPlotTitle(fig, ax, 'All Funds')
+
+	# Plot prices for all funds in list:
+	for fund in funds:
+		ax.plot_date(dates, TSP[fund + ' Fund'][cut:], '-', label=fund + ' Fund')
+
+	definePlotLegend(ax)
+
+	# Save a copy of the plot in the imgpath directory:
+	plt.savefig(os.path.join(imgpath, '00_AllTSPFunds.png'), bbox_inches='tight')
+
+	# Display the plot:
+	plt.show(block=True)
+
+	# Close the plot:
+	plt.close()
+
+def plotSMASignals(t, p, img, fund):
+	# Define datasets for analysis:
+	dates = np.array(date2num(t))
+	price = np.array(p)
+	smanl = np.array(SMA(p, nl))
+	smanh = np.array(SMA(p, nh))
+
+	# Determine which datapoints are out of range:
+	cut = 0
+	for i, date in enumerate(dates):
+		if date > date2num((todaydt-timedelta(days=dd+1))):
+			cut = i - 1
+			break
+
+	# Trim all data points to be in range:
+	dates = dates[cut:]
+	price = price[cut:]
+	smanl = smanl[cut:]
+	smanh = smanh[cut:]
+
+	# Initialize plot:
+	fig, ax = setupPlot()
+
+	# Set relevant titles for window, figure, and axes:
+	genPlotTitle(fig, ax, fund + ' Fund')
 
 	# Plot price and short term and long term moving averages:
 	ax.plot_date(dates, price, '-', label="Close Values")
@@ -166,11 +182,6 @@ for img, fund in {1: 'G', 2: 'F', 3: 'C', 4: 'S', 5: 'I'}.items():
 	ax.plot(crossovers[0][0], crossovers[0][1], 'go', label="Buy Signals")
 	ax.plot(crossovers[1][0], crossovers[1][1], 'ro', label="Sell Signals")
 
-	# Display legend as well as major and minor gridlines:
-	handles, labels = ax.get_legend_handles_labels()
-	ax.legend(handles, labels, loc=8, ncol=len(labels), fontsize=12)
-	ax.grid(which='both')
-
 	# Save a copy of the plot in the imgpath directory:
 	plt.savefig(os.path.join(imgpath, '0' + str(img) + '_TSP' + fund + 'Fund.png'), bbox_inches='tight')
 
@@ -179,3 +190,37 @@ for img, fund in {1: 'G', 2: 'F', 3: 'C', 4: 'S', 5: 'I'}.items():
 
 	# Close the plot:
 	plt.close()
+	
+# Create datetime object for today
+todaydt = datetime.now()
+
+# Create datetime object for the day dd days in the past accounting for loss due to moving average:
+startdt = datetime.now() - timedelta(days=dd+7.0/5.0*nh+dd/30.0*3.0) # Take weekends and holidays into account
+
+# Convert datetime objects into format required by TSP fields:
+today = todaydt.strftime("%m/%d/%Y")
+start = startdt.strftime("%m/%d/%Y")
+
+# Retrieve CSV data from TSP:
+response = fetchTSPData(start, today)
+
+# If data cannot be retreived, exit the program with an error:
+if response.status_code != 200: sys.exit("Could not retrieve data from remote server.")
+
+# Create dictionary from retrieved data:
+TSP = parseTSPData(response)
+
+# Define locators and formatters for time axis of plots:
+quarters = MonthLocator(range(1, 13), bymonthday=1, interval=3)
+months = MonthLocator(range(1, 13), bymonthday=1, interval=1)
+datefmt = DateFormatter("%b %Y")
+
+# Define image path in same directory as this script:
+imgpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'images')
+
+# Plot all TSP funds:
+plotFunds(['G', 'F', 'C', 'S', 'I'])
+
+# Plot each TSP fund and their SMAs and signals:
+for img, fund in {1: 'G', 2: 'F', 3: 'C', 4: 'S', 5: 'I'}.items():
+	plotSMASignals(TSP['date'], TSP[fund + ' Fund'], img, fund)
