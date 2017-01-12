@@ -75,7 +75,7 @@ if response.status_code != 200: sys.exit("Could not retrieve data from remote se
 
 # Read in dataframe from CSV response and sort by date:
 df = pandas.read_csv(StringIO(response.text)).sort_values('date')
-	
+
 # Clean up text in dataframe and create a dictionary:
 TSP = {}
 for k, v in df.to_dict('list').items():
@@ -121,13 +121,13 @@ ax.grid(which='both')
 # Create a directory to store images if it does not already exist:
 imgpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'images')
 if not os.path.isdir(imgpath): os.mkdir(imgpath)
-	
+
 # Save a copy of the plot in the imgpath directory:
 plt.savefig(os.path.join(imgpath, '00_AllTSPFunds.png'), bbox_inches='tight')
-	
+
 # Display the plot:
 plt.show(block=True)
-	
+
 # Close the plot:
 plt.close()
 
