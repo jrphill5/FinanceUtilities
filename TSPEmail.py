@@ -1,4 +1,5 @@
 import smtplib, os
+from datetime import datetime
 
 # Read authentication information from auth.py:
 # Variables EMAIL_HOST, EMAIL_PORT, EMAIL_HOST_USER, EMAIL_HOST_PASSWORD, EMAIL_FROM, EMAIL_TO should be defined.
@@ -9,11 +10,15 @@ from email.mime.text import MIMEText
 from email.mime.image import MIMEImage
 
 msg = MIMEMultipart()
-msg['Subject'] = 'TSP Charts'
+msg['Subject'] = 'TSP Charts ' + datetime.now().strftime('%m/%d/%Y')
 msg['From'] = EMAIL_FROM
 msg['To'] = EMAIL_TO
 
-text = MIMEText('Attached are the most recent TSP charts with signals.')
+try:
+    with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'TSPEmail.txt'), 'r') as fh:
+        text = MIMEText(fh.read())
+except:
+    text = MIMEText('Attached are the most recent TSP charts with signals.')
 
 msg.attach(text)
 
