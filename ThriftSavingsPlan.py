@@ -1,9 +1,18 @@
-import requests, pandas, time, sys, os
+import matplotlib, os
+
+# Run matplotlib in headless mode if no X server exists:
+try:
+    os.environ['DISPLAY']
+except KeyError:
+    matplotlib.use('Agg')
+
+import matplotlib.pyplot as plt
+from matplotlib.dates import date2num, num2date, MonthLocator, WeekdayLocator, DateFormatter
+
+import requests, pandas, time, sys
 from datetime import datetime, timedelta
 from io import StringIO
 import numpy as np
-import matplotlib.pyplot as plt
-from matplotlib.dates import date2num, num2date, MonthLocator, WeekdayLocator, DateFormatter
 
 dd = 365 # Number of days to plot
 nl = 10  # Time period in days for short term moving average
