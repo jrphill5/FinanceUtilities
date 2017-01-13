@@ -90,3 +90,6 @@ ENV/
 
 # Saved images
 images/
+
+# SMTP auth details
+auth.py
