@@ -24,8 +24,13 @@ def detectCrossovers(dates, smanl, smanh):
 	# Create empty data structure:
 	crossovers = [[[],[]],[[],[]]]
 
+	idx = np.argwhere(np.diff(np.sign((smanl-smanh)[nh:])) != 0).reshape(-1) + nh
+	print(idx)
+	idx = np.where(np.diff(np.sign((smanl-smanh)[nh:])))[0].reshape(-1) + nh
+	print(idx)
+
 	# Detect change in sign at every point in the difference of two source lists:
-	for i in np.argwhere(np.diff(np.sign((smanl-smanh)[nh:])) != 0).reshape(-1) + nh:
+	for i in idx:
 		# If short term SMA is below long term SMA, signal to buy:
 		if smanl[i] < smanh[i]:
 			j = 0
@@ -119,14 +124,14 @@ def plotFunds(funds):
 			cut = i - 1
 			break
 
-	# Trim all data points to be in range:
-	dates = dates[cut:]
-
 	# Initialize plot:
 	fig, ax = setupPlot()
 
 	# Set relevant titles for the window and figure:
 	genPlotTitle(fig, ax, 'All Funds')
+
+	# Trim all data points to be in range:
+	dates = dates[cut:]
 
 	# Plot prices for all funds in list:
 	for fund in funds:
@@ -157,26 +162,26 @@ def plotSMASignals(t, p, img, fund):
 			cut = i - 1
 			break
 
-	# Trim all data points to be in range:
-	dates = dates[cut:]
-	price = price[cut:]
-	smanl = smanl[cut:]
-	smanh = smanh[cut:]
-
 	# Initialize plot:
 	fig, ax = setupPlot()
 
 	# Set relevant titles for window, figure, and axes:
 	genPlotTitle(fig, ax, fund + ' Fund')
 
+	# Detect and print exact crossover signals:
+	print(fund + ' fund crossover points:')
+	crossovers = detectCrossovers(dates, smanl, smanh)
+
+	# Trim all data points to be in range:
+	dates = dates[cut:]
+	price = price[cut:]
+	smanl = smanl[cut:]
+	smanh = smanh[cut:]
+
 	# Plot price and short term and long term moving averages:
 	ax.plot_date(dates, price, '-', label="Close Values")
 	ax.plot_date(dates, smanl, '-', label=str(nl) + " Day SMA")
 	ax.plot_date(dates, smanh, '-', label=str(nh) + " Day SMA")
-
-	# Detect and print exact crossover signals:
-	print(fund + ' fund crossover points:')
-	crossovers = detectCrossovers(dates, smanl, smanh)
 
 	# Plot buy and sell crossover signals:
 	ax.plot(crossovers[0][0], crossovers[0][1], 'go', label="Buy Signals")
