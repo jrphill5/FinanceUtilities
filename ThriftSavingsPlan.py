@@ -9,6 +9,9 @@ dd = 365 # Number of days to plot
 nl = 10  # Time period in days for short term moving average
 nh = 30  # Time period in days for long term moving average
 
+def daysSince(dt):
+	return (num2date(date2num(datetime.now())) - dt).days
+
 # Define a simple moving average that replaces invalid positions with NaN:
 def SMA(list, n):
 	# Start with empty list and fill invalid values first:
@@ -24,22 +27,8 @@ def detectCrossovers(dates, smanl, smanh):
 	# Create empty data structure:
 	crossovers = [[[],[]],[[],[]]]
 
-	idx = np.argwhere(np.diff(np.sign((smanl-smanh)[nh:])) != 0).reshape(-1) + nh
-	print(idx)
-	idx = np.where(np.diff(np.sign((smanl-smanh)[nh:])))[0].reshape(-1) + nh
-	print(idx)
-
 	# Detect change in sign at every point in the difference of two source lists:
-	for i in idx:
-		# If short term SMA is below long term SMA, signal to buy:
-		if smanl[i] < smanh[i]:
-			j = 0
-			sys.stdout.write("B: ")
-		# If short term SMA is below long term SMA, signal to sell:
-		else:
-			j = 1
-			sys.stdout.write("S: ")
-
+	for i in np.where(np.diff(np.sign((smanl-smanh)[nh:])))[0].reshape(-1) + nh:
 		# Compute slopes for both short term and long term SMA:
 		smanlm = (smanl[i+1]-smanl[i])/(dates[i+1]-dates[i])
 		smanhm = (smanh[i+1]-smanh[i])/(dates[i+1]-dates[i])
@@ -49,11 +38,23 @@ def detectCrossovers(dates, smanl, smanh):
 		p = smanlm*(t-dates[i])+smanl[i]
 
 		# Append the crossover value to the data structure:
-		crossovers[j][0].append(t)
-		crossovers[j][1].append(p)
+		if t > date2num(todaydt-timedelta(days=dd+1)):
+			# If short term SMA is below long term SMA, signal to buy:
+			if smanl[i] < smanh[i]:
+				j = 0
+				sys.stdout.write("B: ")
+			# If short term SMA is below long term SMA, signal to sell:
+			else:
+				j = 1
+				sys.stdout.write("S: ")
 
-		# Print the crossover date:
-		print(num2date(t).strftime("%m/%d/%Y"))
+			crossovers[j][0].append(t)
+			crossovers[j][1].append(p)
+
+			# Print the crossover date:
+			sys.stdout.write(num2date(t).strftime('%m/%d/%Y ('))
+			sys.stdout.write(str(daysSince(num2date(t))))
+			print(' days ago)')
 
 	# Return the completed data structure
 	return crossovers
