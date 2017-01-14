@@ -16,9 +16,9 @@ msg['To'] = EMAIL_TO
 
 try:
     with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'TSPEmail.txt'), 'r') as fh:
-        text = MIMEText('<font face="Courier New, Courier, monospace">' + fh.read() + '</font>')
+        text = MIMEH('<font face="Courier New, Courier, monospace">' + fh.read() + '</font>', 'html')
 except:
-    text = MIMEText('<font face="Courier New, Courier, monospace">Attached are the most recent TSP charts with signals.</font>')
+    text = MIMEText('<font face="Courier New, Courier, monospace">Attached are the most recent TSP charts with signals.</font>', 'html')
 
 msg.attach(text)
 
