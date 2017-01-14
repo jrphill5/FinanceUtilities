@@ -34,7 +34,7 @@ def SMA(list, n):
 # Detect buy and sell crossovers of two SMA lists and return signals:
 def detectCrossovers(dates, smanl, smanh):
 	# Create empty data structure:
-	crossovers = [[[],[]],[[],[]]]
+	crossovers = []
 
 	# Detect change in sign at every point in the difference of two source lists:
 	for i in np.where(np.diff(np.sign((smanl-smanh)[nh:])))[0].reshape(-1) + nh:
@@ -48,22 +48,9 @@ def detectCrossovers(dates, smanl, smanh):
 
 		# Append the crossover value to the data structure:
 		if t > date2num(todaydt-timedelta(days=dd+1)):
-			# If short term SMA is below long term SMA, signal to buy:
-			if smanl[i] < smanh[i]:
-				j = 0
-				sys.stdout.write("B: ")
-			# If short term SMA is below long term SMA, signal to sell:
-			else:
-				j = 1
-				sys.stdout.write("S: ")
-
-			crossovers[j][0].append(t)
-			crossovers[j][1].append(p)
-
-			# Print the crossover date:
-			sys.stdout.write(num2date(t).strftime('%m/%d/%Y ('))
-			sys.stdout.write(str(daysSince(num2date(t))))
-			print(' days ago)')
+			# If short term SMA is below long term SMA, signal
+			# to buy (True), otherwise signal to sell (False):
+			crossovers.append((smanl[i] < smanh[i], (t, p)))
 
 	# Return the completed data structure
 	return crossovers
@@ -123,6 +110,32 @@ def genPlotTitle(fig, ax, fund):
 	fig.canvas.set_window_title('TSP ' + fund)
 	ax.set_title('Thrift Savings Plan ' + fund + ' from ' + (todaydt-timedelta(days=dd+1)).strftime("%m/%d/%Y") + ' to ' + TSP['date'][len(TSP['date'])-1].strftime("%m/%d/%Y"))
 
+def printLatestCrossover(fund, crossovers):
+	sys.stdout.write(fund + ' fund latest crossover: ')
+	if crossovers:
+		s, (t, p) = crossovers.pop()
+		if s: sys.stdout.write('B ')
+		else: sys.stdout.write('S ')
+		sys.stdout.write(num2date(t).strftime('%m/%d/%Y ('))
+		sys.stdout.write(str(daysSince(num2date(t))).rjust(len(str(dd))))
+		sys.stdout.write(' days ago) @ $')
+		print('{0:.2f}'.format(p))
+	else:
+		print('None within ' + str(dd) + ' days!')
+
+def printAllCrossovers(fund, crossovers):
+	print(fund + ' fund crossover points:')
+	if crossovers:
+		for s, (t, p) in crossovers:
+			if s: sys.stdout.write('  B ')
+			else: sys.stdout.write('  S ')
+			sys.stdout.write(num2date(t).strftime('%m/%d/%Y ('))
+			sys.stdout.write(str(daysSince(num2date(t))).rjust(len(str(dd))))
+			sys.stdout.write(' days ago) @ $')
+			print('{0:.2f}'.format(p))
+	else:
+		print('  None within ' + str(dd) + ' days!')
+
 def plotFunds(funds):
 	# Define datasets for analysis:
 	dates = date2num(TSP['date'])
@@ -180,8 +193,8 @@ def plotSMASignals(t, p, img, fund):
 	genPlotTitle(fig, ax, fund + ' Fund')
 
 	# Detect and print exact crossover signals:
-	print(fund + ' fund crossover points:')
 	crossovers = detectCrossovers(dates, smanl, smanh)
+	printLatestCrossover(fund, crossovers)
 
 	# Trim all data points to be in range:
 	dates = dates[cut:]
@@ -195,8 +208,9 @@ def plotSMASignals(t, p, img, fund):
 	ax.plot_date(dates, smanh, '-', label=str(nh) + " Day SMA")
 
 	# Plot buy and sell crossover signals:
-	ax.plot(crossovers[0][0], crossovers[0][1], 'go', label="Buy Signals")
-	ax.plot(crossovers[1][0], crossovers[1][1], 'ro', label="Sell Signals")
+	if crossovers:
+		ax.plot_date(*zip(*[s[1] for s in crossovers if     s[0]]), color='g', label="Buy Signals")
+		ax.plot_date(*zip(*[s[1] for s in crossovers if not s[0]]), color='r', label="Sell Signals")
 
 	# Define plot legend and add gridlines:
 	definePlotLegend(ax)
