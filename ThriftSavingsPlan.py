@@ -147,6 +147,7 @@ def plotFunds(funds):
 	for fund in funds:
 		ax.plot_date(dates, TSP[fund + ' Fund'][cut:], '-', label=fund + ' Fund')
 
+	# Define plot legend and add gridlines:
 	definePlotLegend(ax)
 
 	# Save a copy of the plot in the imgpath directory:
@@ -196,6 +197,9 @@ def plotSMASignals(t, p, img, fund):
 	# Plot buy and sell crossover signals:
 	ax.plot(crossovers[0][0], crossovers[0][1], 'go', label="Buy Signals")
 	ax.plot(crossovers[1][0], crossovers[1][1], 'ro', label="Sell Signals")
+
+	# Define plot legend and add gridlines:
+	definePlotLegend(ax)
 
 	# Save a copy of the plot in the imgpath directory:
 	plt.savefig(os.path.join(imgpath, '0' + str(img) + '_TSP' + fund + 'Fund.png'), bbox_inches='tight')
