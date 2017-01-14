@@ -113,7 +113,7 @@ def genPlotTitle(fig, ax, fund):
 def printLatestCrossover(fund, crossovers):
 	sys.stdout.write(fund + ' fund latest crossover: ')
 	if crossovers:
-		s, (t, p) = crossovers.pop()
+		s, (t, p) = crossovers[-1]
 		if s: sys.stdout.write('B ')
 		else: sys.stdout.write('S ')
 		sys.stdout.write(num2date(t).strftime('%m/%d/%Y ('))
