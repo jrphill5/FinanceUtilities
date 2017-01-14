@@ -7,7 +7,8 @@ except KeyError:
     matplotlib.use('Agg')
 
 import matplotlib.pyplot as plt
-from matplotlib.dates import date2num, num2date, MonthLocator, WeekdayLocator, DateFormatter
+from matplotlib.ticker import FormatStrFormatter
+from matplotlib.dates import date2num, num2date, MonthLocator, DateFormatter
 
 import requests, pandas, time, sys
 from datetime import datetime, timedelta
@@ -92,9 +93,10 @@ def setupPlot():
 	fig, ax = plt.subplots(figsize=(1920*10/1080.0, 10))
 
 	# Set limits and tick intervals on the time axis:
-	ax.xaxis.set_major_locator(months)
-	ax.xaxis.set_major_formatter(datefmt)
-	ax.xaxis.set_minor_locator(months)
+	ax.xaxis.set_major_locator(MonthLocator(range(1, 13), bymonthday=1, interval=1))
+	ax.xaxis.set_major_formatter(DateFormatter("%b %Y"))
+	#ax.xaxis.set_minor_locator(MonthLocator(range(1, 13), bymonthday=1, interval=1))
+	ax.yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
 	ax.set_xlim([date2num(todaydt-timedelta(days=dd+1)), date2num(TSP['date'][len(TSP['date'])-1])])
 
 	# Create a directory to store images if it does not already exist:
@@ -242,11 +244,6 @@ if response.status_code != 200: sys.exit("Could not retrieve data from remote se
 
 # Create dictionary from retrieved data:
 TSP = parseTSPData(response)
-
-# Define locators and formatters for time axis of plots:
-quarters = MonthLocator(range(1, 13), bymonthday=1, interval=3)
-months = MonthLocator(range(1, 13), bymonthday=1, interval=1)
-datefmt = DateFormatter("%b %Y")
 
 # Define image path in same directory as this script:
 imgpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'images')
