@@ -1,8 +1,8 @@
-import smtplib, os
+import smtplib, os, sys
 from datetime import datetime
 
 # Read authentication information from auth.py:
-# Variables EMAIL_HOST, EMAIL_PORT, EMAIL_HOST_USER, EMAIL_HOST_PASSWORD, EMAIL_FROM, EMAIL_TO should be defined.
+# Variables EMAIL_HOST, EMAIL_PORT, EMAIL_HOST_USER, EMAIL_HOST_PASSWORD, EMAIL_FROM, EMAIL_TO, and EMAIL_SIGNAL should be defined.
 with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'auth.py')) as f: exec(f.read())
 
 from email.mime.multipart import MIMEMultipart
@@ -10,9 +10,15 @@ from email.mime.text import MIMEText
 from email.mime.image import MIMEImage
 
 msg = MIMEMultipart()
-msg['Subject'] = 'TSP Charts ' + datetime.now().strftime('%m/%d/%Y')
-msg['From'] = EMAIL_FROM
-msg['To'] = EMAIL_TO
+
+if len(sys.argv) > 1 and sys.argv[1] == '--signal':
+    msg['Subject'] = 'TSP Signal Detected on ' + datetime.now().strftime('%m/%d/%Y')
+    msg['From'] = EMAIL_FROM
+    msg['To'] = EMAIL_SIGNAL
+else:
+    msg['Subject'] = 'TSP Status for ' + datetime.now().strftime('%m/%d/%Y')
+    msg['From'] = EMAIL_FROM
+    msg['To'] = EMAIL_TO
 
 try:
     with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'TSPEmail.txt'), 'r') as fh:

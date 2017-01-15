@@ -232,7 +232,6 @@ def plotSMASignals(t, p, img, fund):
 	
 # Create datetime object for today
 todaydt = datetime.now()
-todaydt = datetime.strptime('11/17/2016', '%m/%d/%Y')
 
 # Create datetime object for the day dd days in the past accounting for loss due to moving average:
 startdt = todaydt - timedelta(days=dd+7.0/5.0*nh+dd/30.0*3.0) # Take weekends and holidays into account
