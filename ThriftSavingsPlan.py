@@ -20,7 +20,7 @@ nl = 10  # Time period in days for short term moving average
 nh = 30  # Time period in days for long term moving average
 
 def daysSince(dt):
-	return (num2date(date2num(datetime.now())) - dt).days
+	return (num2date(date2num(todaydt)) - dt).days
 
 # Define a simple moving average that replaces invalid positions with NaN:
 def SMA(list, n):
@@ -121,9 +121,11 @@ def printLatestCrossover(fund, crossovers):
 		sys.stdout.write(num2date(t).strftime('%m/%d/%Y ('))
 		sys.stdout.write(str(daysSince(num2date(t))).rjust(len(str(dd))))
 		sys.stdout.write(' days ago) @ $')
-		print('{0:.2f}'.format(p))
+		sys.stdout.write('{0:.2f}'.format(p))
+		return daysSince(num2date(t)) == 0
 	else:
-		print('None within ' + str(dd) + ' days!')
+		sys.stdout.write('None within ' + str(dd) + ' days!')
+		return False
 
 def printAllCrossovers(fund, crossovers):
 	print(fund + ' fund crossover points:')
@@ -196,7 +198,9 @@ def plotSMASignals(t, p, img, fund):
 
 	# Detect and print exact crossover signals:
 	crossovers = detectCrossovers(dates, smanl, smanh)
-	printLatestCrossover(fund, crossovers)
+	if printLatestCrossover(fund, crossovers):
+		print(' !!!')
+	else: print('');
 
 	# Trim all data points to be in range:
 	dates = dates[cut:]
@@ -228,9 +232,10 @@ def plotSMASignals(t, p, img, fund):
 	
 # Create datetime object for today
 todaydt = datetime.now()
+todaydt = datetime.strptime('11/17/2016', '%m/%d/%Y')
 
 # Create datetime object for the day dd days in the past accounting for loss due to moving average:
-startdt = datetime.now() - timedelta(days=dd+7.0/5.0*nh+dd/30.0*3.0) # Take weekends and holidays into account
+startdt = todaydt - timedelta(days=dd+7.0/5.0*nh+dd/30.0*3.0) # Take weekends and holidays into account
 
 # Convert datetime objects into format required by TSP fields:
 today = todaydt.strftime("%m/%d/%Y")
