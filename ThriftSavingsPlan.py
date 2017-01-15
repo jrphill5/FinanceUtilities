@@ -2,9 +2,9 @@ import matplotlib, os
 
 # Run matplotlib in headless mode if no X server exists:
 try:
-    os.environ['DISPLAY']
+	os.environ['DISPLAY']
 except KeyError:
-    matplotlib.use('Agg')
+	matplotlib.use('Agg')
 
 import matplotlib.pyplot as plt
 from matplotlib.ticker import FormatStrFormatter

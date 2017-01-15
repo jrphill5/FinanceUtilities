@@ -12,29 +12,29 @@ from email.mime.image import MIMEImage
 msg = MIMEMultipart()
 
 if len(sys.argv) > 1 and sys.argv[1] == '--signal':
-    msg['Subject'] = 'TSP Signal Detected on ' + datetime.now().strftime('%m/%d/%Y')
-    msg['From'] = EMAIL_FROM
-    msg['To'] = EMAIL_SIGNAL
+	msg['Subject'] = 'TSP Signal Detected on ' + datetime.now().strftime('%m/%d/%Y')
+	msg['From'] = EMAIL_FROM
+	msg['To'] = EMAIL_SIGNAL
 else:
-    msg['Subject'] = 'TSP Status for ' + datetime.now().strftime('%m/%d/%Y')
-    msg['From'] = EMAIL_FROM
-    msg['To'] = EMAIL_TO
+	msg['Subject'] = 'TSP Status for ' + datetime.now().strftime('%m/%d/%Y')
+	msg['From'] = EMAIL_FROM
+	msg['To'] = EMAIL_TO
 
 try:
-    with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'TSPEmail.txt'), 'r') as fh:
-        text = MIMEText('<font face="Courier New, Courier, monospace">' + fh.read().replace(' ', '&nbsp;').replace('\n', '<br />') + '</font>', 'html')
+	with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'TSPEmail.txt'), 'r') as fh:
+		text = MIMEText('<font face="Courier New, Courier, monospace">' + fh.read().replace(' ', '&nbsp;').replace('\n', '<br />') + '</font>', 'html')
 except:
-    text = MIMEText('<font face="Courier New, Courier, monospace">Attached are the most recent TSP charts with signals.</font>', 'html')
+	text = MIMEText('<font face="Courier New, Courier, monospace">Attached are the most recent TSP charts with signals.</font>', 'html')
 
 msg.attach(text)
 
 imgpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'images')
 
 for imgfile in sorted(os.listdir(imgpath)):
-    with open(os.path.join(imgpath, imgfile), 'rb') as fp:
-        img = MIMEImage(fp.read())
-    img.add_header('Content-Disposition', 'attachment', filename=imgfile)
-    msg.attach(img)
+	with open(os.path.join(imgpath, imgfile), 'rb') as fp:
+		img = MIMEImage(fp.read())
+	img.add_header('Content-Disposition', 'attachment', filename=imgfile)
+	msg.attach(img)
 
 s = smtplib.SMTP(EMAIL_HOST, EMAIL_PORT)
 s.starttls()
