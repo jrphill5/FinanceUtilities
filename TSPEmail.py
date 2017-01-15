@@ -14,11 +14,11 @@ msg = MIMEMultipart()
 if len(sys.argv) > 1 and sys.argv[1] == '--signal':
 	msg['Subject'] = 'TSP Signal Detected on ' + datetime.now().strftime('%m/%d/%Y')
 	msg['From'] = EMAIL_FROM
-	msg['To'] = EMAIL_SIGNAL
+	msg['To'] = ', '.join(EMAIL_SIGNAL)
 else:
 	msg['Subject'] = 'TSP Status for ' + datetime.now().strftime('%m/%d/%Y')
 	msg['From'] = EMAIL_FROM
-	msg['To'] = EMAIL_TO
+	msg['To'] = ', '.join(EMAIL_TO)
 
 try:
 	with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'TSPEmail.txt'), 'r') as fh:
