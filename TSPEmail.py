@@ -13,12 +13,12 @@ msg = MIMEMultipart()
 
 if len(sys.argv) > 1 and sys.argv[1] == '--signal':
 	msg['Subject'] = 'TSP Signal Detected on ' + datetime.now().strftime('%m/%d/%Y')
-	msg['From'] = EMAIL_FROM
-	msg['To'] = ', '.join(EMAIL_SIGNAL)
+	EMAIL_TO = EMAIL_SIGNAL
 else:
 	msg['Subject'] = 'TSP Status for ' + datetime.now().strftime('%m/%d/%Y')
-	msg['From'] = EMAIL_FROM
-	msg['To'] = ', '.join(EMAIL_TO)
+
+msg['From'] = EMAIL_FROM
+msg['To'] = ', '.join(EMAIL_TO)
 
 try:
 	with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'TSPEmail.txt'), 'r') as fh:
@@ -39,5 +39,5 @@ for imgfile in sorted(os.listdir(imgpath)):
 s = smtplib.SMTP(EMAIL_HOST, EMAIL_PORT)
 s.starttls()
 s.login(EMAIL_HOST_USER, EMAIL_HOST_PASSWORD)
-s.sendmail(msg['From'], msg['To'], msg.as_string())
+s.sendmail(EMAIL_FROM, EMAIL_TO, msg.as_string())
 s.quit()
