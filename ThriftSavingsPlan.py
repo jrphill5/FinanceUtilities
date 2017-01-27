@@ -20,6 +20,10 @@ class ThriftSavingsPlan:
 		self.dts = dts
 		self.dte = dte
 
+		# Create datetime object for the actual start time accounting for loss due to moving average:
+		dd = (self.dte-self.dts).days
+		self.dtp = self.dte - timedelta(days=dd+7.0/5.0*nh+dd/30.0*3.0) # Take weekends and holidays into account
+
 		self.response = None
 		self.data = None
 
@@ -34,7 +38,7 @@ class ThriftSavingsPlan:
 
 	# POST values to remote webserver and download CSV reply:
 	def fetchData(self):
-		s = self.formatDate(self.dts)
+		s = self.formatDate(self.dtp)
 		e = self.formatDate(self.dte)
 		url = 'https://www.tsp.gov/InvestmentFunds/FundPerformance/index.html'
 		data = {'whichButton': 'CSV', 'startdate': s, 'enddate': e}
@@ -88,7 +92,7 @@ class FinancePlot:
 		self.ax.xaxis.set_major_formatter(DateFormatter("%b %Y"))
 		#self.ax.xaxis.set_minor_locator(MonthLocator(range(1, 13), bymonthday=1, interval=1))
 		self.ax.yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
-		self.ax.set_xlim([date2num(todaydt-timedelta(days=dd+1)), date2num(t[len(t)-1])])
+		self.ax.set_xlim([date2num(self.t[len(self.t)-1]-timedelta(days=dd+1)), date2num(self.t[len(self.t)-1])])
 
 		# Create a directory to store images if it does not already exist:
 		if not os.path.exists(self.imgpath): os.mkdir(self.imgpath)
@@ -105,10 +109,10 @@ class FinancePlot:
 
 	def genPlotTitle(self, fund):
 		self.fig.canvas.set_window_title('TSP ' + fund)
-		self.ax.set_title('Thrift Savings Plan ' + fund + ' from ' + (todaydt-timedelta(days=dd+1)).strftime("%m/%d/%Y") + ' to ' + self.t[len(self.t)-1].strftime("%m/%d/%Y"))
+		self.ax.set_title('Thrift Savings Plan ' + fund + ' from ' + (self.t[len(self.t)-1]-timedelta(days=dd+1)).strftime("%m/%d/%Y") + ' to ' + self.t[len(self.t)-1].strftime("%m/%d/%Y"))
 
 def daysSince(dt):
-	return (num2date(date2num(todaydt)) - dt).days
+	return (num2date(date2num(datetime.now())) - dt).days
 
 # Define a simple moving average that replaces invalid positions with NaN:
 def SMA(list, n):
@@ -136,7 +140,7 @@ def detectCrossovers(dates, smanl, smanh):
 		p = smanlm*(t-dates[i])+smanl[i]
 
 		# Append the crossover value to the data structure:
-		if t > date2num(todaydt-timedelta(days=dd+1)):
+		if t > date2num(num2date(dates[len(dates)-1])-timedelta(days=dd+1)):
 			# If short term SMA is below long term SMA, signal
 			# to buy (True), otherwise signal to sell (False):
 			crossovers.append((smanl[i] < smanh[i], (t, p)))
@@ -228,7 +232,7 @@ def plotFunds(TSP, funds):
 	# Determine which datapoints are out of range:
 	cut = 0
 	for i, date in enumerate(dates):
-		if date > date2num((todaydt-timedelta(days=dd+1))):
+		if date > date2num((t[len(t)-1]-timedelta(days=dd+1))):
 			cut = i - 1
 			break
 
@@ -271,7 +275,7 @@ def plotSMASignals(t, p, img, fund):
 	# Determine which datapoints are out of range:
 	cut = 0
 	for i, date in enumerate(dates):
-		if date > date2num((todaydt-timedelta(days=dd+1))):
+		if date > date2num((t[len(t)-1]-timedelta(days=dd+1))):
 			cut = i - 1
 			break
 
@@ -328,17 +332,11 @@ def plotSMASignals(t, p, img, fund):
 	
 if __name__ == "__main__":
 
-	dd = 365 # Number of days to plot
-	nl = 10  # Time period in days for short term moving average
-	nh = 30  # Time period in days for long term moving average
+	dd = 365
+	nl = 10
+	nh = 30
 
-	# Create datetime object for today
-	todaydt = datetime.now()
-
-	# Create datetime object for the day dd days in the past accounting for loss due to moving average:
-	startdt = todaydt - timedelta(days=dd+7.0/5.0*nh+dd/30.0*3.0) # Take weekends and holidays into account
-
-	TSP = ThriftSavingsPlan(startdt, todaydt)
+	TSP = ThriftSavingsPlan()
 	data = TSP.getData()
 
 	# If data cannot be retreived, exit the program with an error:
