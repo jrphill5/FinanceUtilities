@@ -137,6 +137,16 @@ class ThriftSavingsPlan:
 	def calcPIPFI(self, t, p):
 		return ((p[len(p)-1] - p[0]), 100*(p[len(p)-1] - p[0])/p[0])
 
+	# Define a simple moving average that replaces invalid positions with NaN:
+	def SMA(self, l, n):
+		# Start with empty list and fill invalid values first:
+		ma = [np.nan]*n
+		# Move through the valid positions in list and compute moving average:
+		for i in range(n, len(l)):
+			ma.append(np.mean(l[i-n:i]))
+		# Return result
+		return ma
+
 class FinancePlot:
 	def __init__(self):
 		self.fig = None
@@ -183,16 +193,6 @@ class FinancePlot:
 
 def daysSince(dt):
 	return (num2date(date2num(datetime.now())) - dt).days
-
-# Define a simple moving average that replaces invalid positions with NaN:
-def SMA(list, n):
-	# Start with empty list and fill invalid values first:
-	ma = [np.nan]*n
-	# Move through the valid positions in list and compute moving average:
-	for i in range(n, len(list)):
-		ma.append(np.mean(list[i-n:i]))
-	# Return result"
-	return ma
 
 def printLatestCrossover(fund, crossovers):
 	print()
@@ -269,8 +269,8 @@ def plotSMASignals(tsp, t, p, img, imgpath, fund, nl, nh, dd):
 	# Define datasets for analysis:
 	dates = np.array(date2num(t))
 	price = np.array(p)
-	smanl = np.array(SMA(p, nl))
-	smanh = np.array(SMA(p, nh))
+	smanl = np.array(tsp.SMA(p, nl))
+	smanh = np.array(tsp.SMA(p, nh))
 
 	# Determine which datapoints are out of range:
 	cut = 0
