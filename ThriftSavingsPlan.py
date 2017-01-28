@@ -158,7 +158,7 @@ def calcPIPFS(t, p, crossovers, verbose=False):
 	if verbose: print('share bought on ' + num2date(t[0]).strftime('%m/%d/%y') + ' for $' + '{0:.2f}'.format(p[0]))
 	bl = (t[0], p[0])
 
-	gain = -p[0];
+	gain = -p[0]
 	for i, (s, (ts, ps)) in enumerate(crossovers):
 		# If first signal is buy, ignore, otherwise sell:
 		if i == 0:
@@ -265,7 +265,7 @@ def plotFunds(TSP, funds):
 	# Close the plot:
 	plt.close()
 
-def plotSMASignals(t, p, img, fund):
+def plotSMASignals(t, p, img, imgpath, fund, nl, nh, dd):
 	# Define datasets for analysis:
 	dates = np.array(date2num(t))
 	price = np.array(p)
@@ -351,4 +351,4 @@ if __name__ == "__main__":
 
 	# Plot each TSP fund and their SMAs and signals:
 	for img, fund in {1: 'G', 2: 'F', 3: 'C', 4: 'S', 5: 'I'}.items():
-		plotSMASignals(data['date'], data[fund + ' Fund'], img, fund)
+		plotSMASignals(data['date'], data[fund + ' Fund'], img, imgpath, fund, nl, nh, dd)
