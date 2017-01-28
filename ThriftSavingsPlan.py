@@ -147,6 +147,38 @@ class ThriftSavingsPlan:
 		# Return result
 		return ma
 
+	def daysSince(self, dt):
+		return (num2date(date2num(datetime.now())) - dt).days
+
+	def printLatestCrossover(self, fund, crossovers):
+		print()
+		print(fund + ' fund latest crossover:')
+		if crossovers:
+			s, (t, p) = crossovers[-1]
+			if s: sys.stdout.write('  B ')
+			else: sys.stdout.write('  S ')
+			sys.stdout.write(num2date(t).strftime('%m/%d/%Y ('))
+			sys.stdout.write(str(self.daysSince(num2date(t))).rjust(len(str(dd))))
+			sys.stdout.write(' days ago) @ $')
+			sys.stdout.write('{0:.2f}'.format(p))
+			return self.daysSince(num2date(t)) == 0
+		else:
+			sys.stdout.write('  None within ' + str(dd) + ' days!')
+			return False
+
+	def printAllCrossovers(self, fund, crossovers):
+		print(fund + ' fund crossover points:')
+		if crossovers:
+			for s, (t, p) in crossovers:
+				if s: sys.stdout.write('  B ')
+				else: sys.stdout.write('  S ')
+				sys.stdout.write(num2date(t).strftime('%m/%d/%Y ('))
+				sys.stdout.write(str(self.daysSince(num2date(t))).rjust(len(str(dd))))
+				sys.stdout.write(' days ago) @ $')
+				print('{0:.2f}'.format(p))
+		else:
+			print('  None within ' + str(dd) + ' days!')
+
 class FinancePlot:
 	def __init__(self):
 		self.fig = None
@@ -372,7 +404,7 @@ class FinancePlot:
 
 		# Detect and print exact crossover signals:
 		crossovers = tsp.detectCrossovers(dates, smanl, smanh)
-		if printLatestCrossover(fund, crossovers):
+		if tsp.printLatestCrossover(fund, crossovers):
 			print(' !!!')
 		else: print('');
 
@@ -405,38 +437,6 @@ class FinancePlot:
 		# Close the plot:
 		plt.close()
 	
-def daysSince(dt):
-	return (num2date(date2num(datetime.now())) - dt).days
-
-def printLatestCrossover(fund, crossovers):
-	print()
-	print(fund + ' fund latest crossover:')
-	if crossovers:
-		s, (t, p) = crossovers[-1]
-		if s: sys.stdout.write('  B ')
-		else: sys.stdout.write('  S ')
-		sys.stdout.write(num2date(t).strftime('%m/%d/%Y ('))
-		sys.stdout.write(str(daysSince(num2date(t))).rjust(len(str(dd))))
-		sys.stdout.write(' days ago) @ $')
-		sys.stdout.write('{0:.2f}'.format(p))
-		return daysSince(num2date(t)) == 0
-	else:
-		sys.stdout.write('  None within ' + str(dd) + ' days!')
-		return False
-
-def printAllCrossovers(fund, crossovers):
-	print(fund + ' fund crossover points:')
-	if crossovers:
-		for s, (t, p) in crossovers:
-			if s: sys.stdout.write('  B ')
-			else: sys.stdout.write('  S ')
-			sys.stdout.write(num2date(t).strftime('%m/%d/%Y ('))
-			sys.stdout.write(str(daysSince(num2date(t))).rjust(len(str(dd))))
-			sys.stdout.write(' days ago) @ $')
-			print('{0:.2f}'.format(p))
-	else:
-		print('  None within ' + str(dd) + ' days!')
-
 if __name__ == "__main__":
 
 	dd = 365
