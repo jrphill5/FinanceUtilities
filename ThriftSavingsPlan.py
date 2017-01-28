@@ -67,6 +67,31 @@ class ThriftSavingsPlan:
 	def formatDate(self, dt):
 		return dt.strftime("%m/%d/%Y")
 
+	# Detect buy and sell crossovers of two SMA lists and return signals:
+	def detectCrossovers(self, dates, smanl, smanh):
+		# Create empty data structure:
+		crossovers = []
+
+		# Detect change in sign at every point in the difference of two source lists:
+		for i in np.where(np.diff(np.sign((smanl-smanh))))[0].reshape(-1):
+			# Compute slopes for both short term and long term SMA:
+			smanlm = (smanl[i+1]-smanl[i])/(dates[i+1]-dates[i])
+			smanhm = (smanh[i+1]-smanh[i])/(dates[i+1]-dates[i])
+
+			# Compute exact time and value of the crossover:
+			t = (smanh[i]-smanl[i])/(smanlm-smanhm)+dates[i]
+			p = smanlm*(t-dates[i])+smanl[i]
+
+			# Append the crossover value to the data structure:
+			if t > date2num(num2date(dates[len(dates)-1])-timedelta(days=dd+1)):
+				# If short term SMA is below long term SMA, signal
+				# to buy (True), otherwise signal to sell (False):
+				crossovers.append((smanl[i] < smanh[i], (t, p)))
+
+		# Return the completed data structure
+		return crossovers
+
+
 class FinancePlot:
 	def __init__(self):
 		self.fig = None
@@ -123,30 +148,6 @@ def SMA(list, n):
 		ma.append(np.mean(list[i-n:i]))
 	# Return result"
 	return ma
-
-# Detect buy and sell crossovers of two SMA lists and return signals:
-def detectCrossovers(dates, smanl, smanh):
-	# Create empty data structure:
-	crossovers = []
-
-	# Detect change in sign at every point in the difference of two source lists:
-	for i in np.where(np.diff(np.sign((smanl-smanh))))[0].reshape(-1):
-		# Compute slopes for both short term and long term SMA:
-		smanlm = (smanl[i+1]-smanl[i])/(dates[i+1]-dates[i])
-		smanhm = (smanh[i+1]-smanh[i])/(dates[i+1]-dates[i])
-
-		# Compute exact time and value of the crossover:
-		t = (smanh[i]-smanl[i])/(smanlm-smanhm)+dates[i]
-		p = smanlm*(t-dates[i])+smanl[i]
-
-		# Append the crossover value to the data structure:
-		if t > date2num(num2date(dates[len(dates)-1])-timedelta(days=dd+1)):
-			# If short term SMA is below long term SMA, signal
-			# to buy (True), otherwise signal to sell (False):
-			crossovers.append((smanl[i] < smanh[i], (t, p)))
-
-	# Return the completed data structure
-	return crossovers
 
 # Calculate PIP following signals:
 def calcPIPFS(t, p, crossovers, verbose=False):
@@ -265,7 +266,7 @@ def plotFunds(TSP, funds):
 	# Close the plot:
 	plt.close()
 
-def plotSMASignals(t, p, img, imgpath, fund, nl, nh, dd):
+def plotSMASignals(tsp, t, p, img, imgpath, fund, nl, nh, dd):
 	# Define datasets for analysis:
 	dates = np.array(date2num(t))
 	price = np.array(p)
@@ -296,7 +297,7 @@ def plotSMASignals(t, p, img, imgpath, fund, nl, nh, dd):
 	ax = fp.getAx()
 
 	# Detect and print exact crossover signals:
-	crossovers = detectCrossovers(dates, smanl, smanh)
+	crossovers = tsp.detectCrossovers(dates, smanl, smanh)
 	if printLatestCrossover(fund, crossovers):
 		print(' !!!')
 	else: print('');
@@ -351,4 +352,4 @@ if __name__ == "__main__":
 
 	# Plot each TSP fund and their SMAs and signals:
 	for img, fund in {1: 'G', 2: 'F', 3: 'C', 4: 'S', 5: 'I'}.items():
-		plotSMASignals(data['date'], data[fund + ' Fund'], img, imgpath, fund, nl, nh, dd)
+		plotSMASignals(TSP, data['date'], data[fund + ' Fund'], img, imgpath, fund, nl, nh, dd)
