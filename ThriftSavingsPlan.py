@@ -446,8 +446,6 @@ if __name__ == "__main__":
 	TSP = ThriftSavingsPlan()
 	data = TSP.getData()
 
-	fp = FinancePlot()
-
 	# If data cannot be retreived, exit the program with an error:
 	if data is None:
 		sys.exit("Could not retrieve data from remote server.")
@@ -456,6 +454,7 @@ if __name__ == "__main__":
 	imgpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'images')
 
 	# Plot all TSP funds:
+	fp = FinancePlot()
 	fp.plotFunds(data, ['G', 'F', 'C', 'S', 'I'])
 
 	# Plot each TSP fund and their SMAs and signals:
