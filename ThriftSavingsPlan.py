@@ -1,20 +1,9 @@
-import matplotlib, os
-
-# Run matplotlib in headless mode if no X server exists:
-try:
-	os.environ['DISPLAY']
-except KeyError:
-	matplotlib.use('Agg')
-
-import matplotlib.pyplot as plt
-from matplotlib.ticker import FormatStrFormatter
-from matplotlib.dates import date2num, num2date, MonthLocator, DateFormatter
-
-import BasicFinance, FinancePlot
-import requests, pandas, time, sys
+import requests, pandas, os, sys
+from matplotlib.dates import date2num, num2date
 from datetime import datetime, timedelta
 from io import StringIO
-import numpy as np
+
+import BasicFinance, FinancePlot
 
 class ThriftSavingsPlan:
 	def __init__(self, dts = datetime.now() - timedelta(days=365), dte = datetime.now(), nl = 10, nh = 30):

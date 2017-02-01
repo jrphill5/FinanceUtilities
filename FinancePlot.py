@@ -1,4 +1,12 @@
-import os, sys
+import matplotlib, os
+
+# Run matplotlib in headless mode if no X server exists:
+try:
+	os.environ['DISPLAY']
+except KeyError:
+	matplotlib.use('Agg')
+
+import sys
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.dates import date2num, num2date, MonthLocator, DateFormatter
