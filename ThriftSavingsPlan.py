@@ -42,7 +42,9 @@ class ThriftSavingsPlan:
 	def parseData(self):
 		if self.response.status_code == 200:
 			# Read in dataframe from CSV response and sort by date:
-			df = pandas.read_csv(StringIO(self.response.text)).sort_values('date')
+			df = pandas.read_csv(StringIO(self.response.text))
+			df['date'] = pandas.to_datetime(df['date'], format='%Y-%m-%d')
+			df = df.sort_values('date')
 
 			# Clean up text in dataframe and create a dictionary:
 			data = {}
@@ -51,8 +53,8 @@ class ThriftSavingsPlan:
 				if len(kn) > 0:
 					data[kn] = v
 
-			# Convert all text dates into datetime objects:
-			data['date'] = [datetime.strptime(date, '%Y-%m-%d') for date in data['date']]
+			# Convert Pandas timestamps to datetime objects:
+			data['date'] = [ts.to_pydatetime() for ts in data['date']]
 
 			self.data = data
 		else:
