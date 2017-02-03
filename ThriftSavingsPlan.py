@@ -34,10 +34,8 @@ class ThriftSavingsPlan:
 	# POST values to remote webserver and download CSV reply:
 	def fetchData(self):
 		dateFormat = '%m/%d/%Y'
-		s = self.dtp.strftime(dateFormat)
-		e = self.dte.strftime(dateFormat)
 		url = 'https://www.tsp.gov/InvestmentFunds/FundPerformance/index.html'
-		data = {'whichButton': 'CSV', 'startdate': s, 'enddate': e}
+		data = {'whichButton': 'CSV', 'startdate': self.dtp.strftime(dateFormat), 'enddate': self.dte.strftime(dateFormat)}
 		self.response = requests.post(url, data=data)
 
 	# Create a clean dictionary with all CSV info from the TSP:
