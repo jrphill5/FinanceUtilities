@@ -89,7 +89,7 @@ ENV/
 .ropeproject
 
 # Saved images
-images/
+*images/
 
 # SMTP auth details
 auth.py
