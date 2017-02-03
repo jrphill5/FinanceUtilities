@@ -61,7 +61,7 @@ class FinancePlot:
 		self.ax.set_title('Thrift Savings Plan ' + fund + ' from ' + self.bf.formatDate(self.t[len(self.t)-1]-timedelta(days=self.dd+1)) + ' to ' + self.bf.formatDate(self.t[len(self.t)-1]))
 
 	def plotFunds(self, TSP, funds):
-		t = TSP['date']
+		t = TSP['Date']
 
 		# Define datasets for analysis:
 		dates = date2num(t)
@@ -71,6 +71,7 @@ class FinancePlot:
 		for i, date in enumerate(dates):
 			if date > date2num((t[len(t)-1]-timedelta(days=self.dd+1))):
 				cut = i - 1
+				if cut < 0: cut = 0
 				break
 
 		# Trim all data points to be in range:
@@ -88,7 +89,7 @@ class FinancePlot:
 
 		# Plot prices for all funds in list:
 		for fund in funds:
-			ax.plot_date(dates, TSP[fund + ' Fund'][cut:], '-', label=fund + ' Fund')
+			ax.plot_date(dates, TSP[fund][cut:], '-', label=fund)
 
 		# Define plot legend and add gridlines:
 		fp.definePlotLegend()
@@ -114,6 +115,7 @@ class FinancePlot:
 		for i, date in enumerate(dates):
 			if date > date2num((t[len(t)-1]-timedelta(days=self.dd+1))):
 				cut = i - 1
+				if cut < 0: cut = 0
 				break
 
 		# Trim all data points to be in range:

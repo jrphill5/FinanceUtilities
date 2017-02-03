@@ -54,7 +54,8 @@ class ThriftSavingsPlan:
 					data[kn] = v
 
 			# Convert Pandas timestamps to datetime objects:
-			data['date'] = [ts.to_pydatetime() for ts in data['date']]
+			data['Date'] = [ts.to_pydatetime() for ts in data['date']]
+			del data['date']
 
 			self.data = data
 		else:
@@ -62,7 +63,7 @@ class ThriftSavingsPlan:
 
 	def printLatestCrossover(self, fund, crossovers):
 		print()
-		print(fund + ' fund latest crossover:')
+		print(fund + ' latest crossover:')
 		if crossovers:
 			s, (t, p) = crossovers[-1]
 			if s: sys.stdout.write('  B ')
@@ -77,7 +78,7 @@ class ThriftSavingsPlan:
 			return False
 
 	def printAllCrossovers(self, fund, crossovers):
-		print(fund + ' fund crossover points:')
+		print(fund + ' crossover points:')
 		if crossovers:
 			for s, (t, p) in crossovers:
 				if s: sys.stdout.write('  B ')
@@ -103,8 +104,8 @@ if __name__ == "__main__":
 
 	# Plot all TSP funds:
 	fp = FinancePlot.FinancePlot(TSP.dd, imgpath)
-	fp.plotFunds(data, ['G', 'F', 'C', 'S', 'I'])
+	fp.plotFunds(data, ['G Fund', 'F Fund', 'C Fund', 'S Fund', 'I Fund'])
 
 	# Plot each TSP fund and their SMAs and signals:
 	for img, fund in {1: 'G', 2: 'F', 3: 'C', 4: 'S', 5: 'I'}.items():
-		fp.plotSMASignals(TSP, data['date'], data[fund + ' Fund'], img, fund)
+		fp.plotSMASignals(TSP, data['Date'], data[fund + ' Fund'], img, fund)
