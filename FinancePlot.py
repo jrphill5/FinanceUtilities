@@ -16,7 +16,8 @@ from datetime import datetime, timedelta
 import BasicFinance
 
 class FinancePlot:
-	def __init__(self, dd, imgpath):
+	def __init__(self, source, dd, imgpath):
+		self.source = source
 		self.bf = BasicFinance.BasicFinance()
 		self.dd = dd
 		self.fig = None
@@ -58,7 +59,7 @@ class FinancePlot:
 
 	def genPlotTitle(self, fund):
 		self.fig.canvas.set_window_title('TSP ' + fund)
-		self.ax.set_title('Thrift Savings Plan ' + fund + ' from ' + self.bf.formatDate(self.t[len(self.t)-1]-timedelta(days=self.dd+1)) + ' to ' + self.bf.formatDate(self.t[len(self.t)-1]))
+		self.ax.set_title(self.source + ' ' + fund + ' from ' + self.bf.formatDate(self.t[len(self.t)-1]-timedelta(days=self.dd+1)) + ' to ' + self.bf.formatDate(self.t[len(self.t)-1]))
 
 	def plotFunds(self, TSP, funds):
 		t = TSP['Date']
@@ -78,11 +79,11 @@ class FinancePlot:
 		dates = dates[cut:]
 
 		# Initialize plot:
-		fp = FinancePlot(self.dd, self.imgpath)
+		fp = FinancePlot(self.source, self.dd, self.imgpath)
 		fp.setupPlot(t)
 
 		# Set relevant titles for the window and figure:
-		fp.genPlotTitle('All Funds')
+		fp.genPlotTitle('Funds')
 
 		fig = fp.getFig()
 		ax = fp.getAx()
@@ -125,7 +126,7 @@ class FinancePlot:
 		smanh = smanh[cut:]
 
 		# Initialize plot:
-		fp = FinancePlot(self.dd, self.imgpath)
+		fp = FinancePlot(self.source, self.dd, self.imgpath)
 		fp.setupPlot(t)
 
 		# Set relevant titles for window, figure, and axes:

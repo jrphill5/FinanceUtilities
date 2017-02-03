@@ -107,7 +107,7 @@ if __name__ == "__main__":
 		imgpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'gf_images')
 
 		# Plot all TSP funds:
-		fp = FinancePlot.FinancePlot(gf.dd, imgpath)
+		fp = FinancePlot.FinancePlot('Google Finance', gf.dd, imgpath)
 		#fp.plotFunds(data, ['Close'])
 
 		# Plot symbol and the SMAs and signals:

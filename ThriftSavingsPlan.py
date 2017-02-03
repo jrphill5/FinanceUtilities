@@ -103,7 +103,7 @@ if __name__ == "__main__":
 	imgpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'images')
 
 	# Plot all TSP funds:
-	fp = FinancePlot.FinancePlot(TSP.dd, imgpath)
+	fp = FinancePlot.FinancePlot('Thrift Savings Plan', TSP.dd, imgpath)
 	fp.plotFunds(data, ['G Fund', 'F Fund', 'C Fund', 'S Fund', 'I Fund'])
 
 	# Plot each TSP fund and their SMAs and signals:
