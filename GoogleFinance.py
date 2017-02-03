@@ -35,9 +35,9 @@ class GoogleFinance:
 
 	# Send values to remote webserver and download CSV reply:
 	def fetchData(self):
-		dateFormat = '%m+%d+%Y'
+		dateFormat = '%m %d %Y'
 		url = 'http://www.google.com/finance/historical'
-		data = {'output': 'csv', 'q': self.symbol, 'startdate': self.dts.strftime(dateFormat), 'enddate': self.dte.strftime(dateFormat)}
+		data = {'output': 'csv', 'q': self.symbol, 'startdate': self.dtp.strftime(dateFormat), 'enddate': self.dte.strftime(dateFormat)}
 		self.response = requests.get(url, params=data)
 
 	def parseData(self):
