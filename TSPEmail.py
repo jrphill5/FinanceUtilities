@@ -21,14 +21,14 @@ msg['From'] = EMAIL_FROM
 msg['To'] = ', '.join(EMAIL_TO)
 
 try:
-	with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'TSPEmail.txt'), 'r') as fh:
+	with open('/tmp/TSPEmail.txt', 'r') as fh:
 		text = MIMEText('<font face="Courier New, Courier, monospace">' + fh.read().replace(' ', '&nbsp;').replace('\n', '<br />') + '</font>', 'html')
 except:
 	text = MIMEText('<font face="Courier New, Courier, monospace">Attached are the most recent TSP charts with signals.</font>', 'html')
 
 msg.attach(text)
 
-imgpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'images')
+imgpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'images', 'tsp')
 
 for imgfile in sorted(os.listdir(imgpath)):
 	with open(os.path.join(imgpath, imgfile), 'rb') as fp:

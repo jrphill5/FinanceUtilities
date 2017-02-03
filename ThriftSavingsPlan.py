@@ -100,7 +100,7 @@ if __name__ == "__main__":
 		sys.exit("Could not retrieve data from remote server.")
 
 	# Define image path in same directory as this script:
-	imgpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'images')
+	imgpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'images', 'tsp')
 
 	# Plot all TSP funds:
 	fp = FinancePlot.FinancePlot('Thrift Savings Plan', TSP.dd, imgpath)

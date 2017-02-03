@@ -89,10 +89,7 @@ ENV/
 .ropeproject
 
 # Saved images
-*images/
+images/
 
 # SMTP auth details
 auth.py
-
-# Temporary email bodies
-*Email.txt

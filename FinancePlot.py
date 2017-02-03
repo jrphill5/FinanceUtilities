@@ -45,7 +45,7 @@ class FinancePlot:
 		self.ax.set_xlim([date2num(self.t[len(self.t)-1]-timedelta(days=self.dd+1)), date2num(self.t[len(self.t)-1])])
 
 		# Create a directory to store images if it does not already exist:
-		if not os.path.exists(self.imgpath): os.mkdir(self.imgpath)
+		if not os.path.exists(self.imgpath): os.makedirs(self.imgpath)
 
 		# Set labels for axes:
 		self.ax.set_xlabel('Close Date')
@@ -58,11 +58,11 @@ class FinancePlot:
 		self.ax.grid(which='both')
 
 	def genPlotTitle(self, fund):
-		self.fig.canvas.set_window_title('TSP ' + fund)
+		self.fig.canvas.set_window_title(self.source + ' ' + fund)
 		self.ax.set_title(self.source + ' ' + fund + ' from ' + self.bf.formatDate(self.t[len(self.t)-1]-timedelta(days=self.dd+1)) + ' to ' + self.bf.formatDate(self.t[len(self.t)-1]))
 
-	def plotFunds(self, TSP, funds):
-		t = TSP['Date']
+	def plotFunds(self, finData, funds):
+		t = finData['Date']
 
 		# Define datasets for analysis:
 		dates = date2num(t)
@@ -90,13 +90,13 @@ class FinancePlot:
 
 		# Plot prices for all funds in list:
 		for fund in funds:
-			ax.plot_date(dates, TSP[fund][cut:], '-', label=fund)
+			ax.plot_date(dates, finData[fund][cut:], '-', label=fund)
 
 		# Define plot legend and add gridlines:
 		fp.definePlotLegend()
 
 		# Save a copy of the plot in the imgpath directory:
-		plt.savefig(os.path.join(self.imgpath, '00_AllTSPFunds.png'), bbox_inches='tight')
+		plt.savefig(os.path.join(self.imgpath, '00_AllFunds.png'), bbox_inches='tight')
 
 		# Display the plot:
 		plt.show(block=True)
@@ -104,12 +104,12 @@ class FinancePlot:
 		# Close the plot:
 		plt.close()
 
-	def plotSMASignals(self, tsp, t, p, img, fund):
+	def plotSMASignals(self, finObj, t, p, img, fund):
 		# Define datasets for analysis:
 		dates = np.array(date2num(t))
 		price = np.array(p)
-		smanl = np.array(self.bf.SMA(p, tsp.nl))
-		smanh = np.array(self.bf.SMA(p, tsp.nh))
+		smanl = np.array(self.bf.SMA(p, finObj.nl))
+		smanh = np.array(self.bf.SMA(p, finObj.nh))
 
 		# Determine which datapoints are out of range:
 		cut = 0
@@ -137,7 +137,7 @@ class FinancePlot:
 
 		# Detect and print exact crossover signals:
 		crossovers = self.bf.detectCrossovers(dates, smanl, smanh, self.dd)
-		if tsp.printLatestCrossover(fund, crossovers):
+		if finObj.printLatestCrossover(fund, crossovers):
 			print(' !!!')
 		else: print('');
 
@@ -150,8 +150,8 @@ class FinancePlot:
 	
 		# Plot price and short term and long term moving averages:
 		ax.plot_date(dates, price, '-', label="Close Values")
-		ax.plot_date(dates, smanl, '-', label=str(tsp.nl) + " Day SMA")
-		ax.plot_date(dates, smanh, '-', label=str(tsp.nh) + " Day SMA")
+		ax.plot_date(dates, smanl, '-', label=str(finObj.nl) + " Day SMA")
+		ax.plot_date(dates, smanh, '-', label=str(finObj.nh) + " Day SMA")
 
 		# Plot buy and sell crossover signals:
 		if crossovers:
@@ -162,7 +162,7 @@ class FinancePlot:
 		fp.definePlotLegend()
 
 		# Save a copy of the plot in the imgpath directory:
-		plt.savefig(os.path.join(self.imgpath, '0' + str(img) + '_TSP' + fund + 'Fund.png'), bbox_inches='tight')
+		plt.savefig(os.path.join(self.imgpath, '0' + str(img) + '_' + fund + 'Fund.png'), bbox_inches='tight')
 
 		# Display the plot:
 		plt.show(block=True)

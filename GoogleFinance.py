@@ -104,7 +104,7 @@ if __name__ == "__main__":
 			continue
 
 		# Define image path in same directory as this script:
-		imgpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'gf_images')
+		imgpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'images', 'gf')
 
 		# Plot all TSP funds:
 		fp = FinancePlot.FinancePlot('Google Finance', gf.dd, imgpath)
