@@ -92,7 +92,7 @@ class GoogleFinance:
 
 if __name__ == "__main__":
 
-	symbols = ['VTI', 'VXUS']
+	symbols = ['VTI', 'VXUS', 'TSLA', 'DIS']
 
 	for img, smb in enumerate(symbols):
 		gf = GoogleFinance(smb)
