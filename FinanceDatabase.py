@@ -22,10 +22,15 @@ class FinanceDatabase:
 		self.c.executemany("INSERT OR IGNORE INTO " + self.table + "(symbol, date, close) VALUES(?,?,?)", [[symbol, d, c] for d, c in zip(date, close)])
 		self.db.commit()
 
+	def fetch(self, symbol, date):
+		self.c.execute("SELECT date, close FROM " + self.table + " WHERE symbol=? AND date=?", (symbol, date))
+		result = self.c.fetch()
+		return {'date': result[0], 'close': result[1]}
+
 	def fetchAll(self, symbol):
 		self.c.execute("SELECT date, close FROM " + self.table + " WHERE symbol=? ORDER BY date ASC", (symbol, ))
-		for row in self.c.fetchall():
-			print('%s, $%.2f' % row)
+		result = list(zip(*self.c.fetchall()))
+		return {'date': result[0], 'close': result[1]}
 
 	def close(self):
 		self.db.close()

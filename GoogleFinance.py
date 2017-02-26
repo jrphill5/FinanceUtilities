@@ -24,6 +24,9 @@ class GoogleFinance:
 		self.response = None
 		self.data = None
 
+		# If number of entries in db is different than this, download info:
+		print(len(self.bf.getTradingDays(self.dtp, self.dte)))
+
 		self.update()
 
 	def update(self):

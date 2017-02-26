@@ -1,10 +1,34 @@
 import numpy as np
 from datetime import datetime, timedelta
 from matplotlib.dates import num2date, date2num
+import pandas as pd
+from pandas.tseries.offsets import CustomBusinessDay
+from pandas.tseries.holiday import AbstractHolidayCalendar, Holiday, nearest_workday, USMartinLutherKingJr, USPresidentsDay, GoodFriday, USMemorialDay, USLaborDay, USThanksgivingDay
+
+class USTradingCalendar(AbstractHolidayCalendar):
+	rules = [
+		Holiday('NewYearsDay', month=1, day=1, observance=nearest_workday),
+		USMartinLutherKingJr,
+		USPresidentsDay,
+		GoodFriday,
+		USMemorialDay,
+		Holiday('USIndependenceDay', month=7, day=4, observance=nearest_workday),
+		USLaborDay,
+		USThanksgivingDay,
+		Holiday('ChristmasDay', month=12, day=25, observance=nearest_workday)
+    ]
 
 class BasicFinance:
 	def __init__(self):
 		pass
+
+	def getHolidays(self, dts, dte):
+		inst = USTradingCalendar()
+		return inst.holidays(dts, dte)
+
+	def getTradingDays(self, dts, dte):
+		inst = CustomBusinessDay(calendar=USTradingCalendar())
+		return pd.DatetimeIndex(start=dts, end=dte, freq=inst)
 
 	def formatDate(self, dt):
 		return dt.strftime("%m/%d/%Y")
