@@ -93,3 +93,6 @@ images/
 
 # SMTP auth details
 auth.py
+
+# SQLite databases
+*.db
