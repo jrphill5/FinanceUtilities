@@ -3,7 +3,7 @@ from matplotlib.dates import num2date, date2num
 from datetime import datetime, timedelta
 from io import StringIO
 
-import BasicFinance, FinancePlot
+import BasicFinance, FinanceDatabase, FinancePlot
 
 class GoogleFinance:
 	def __init__(self, symbol, dts = datetime.now() - timedelta(days=365), dte = datetime.now(), nl = 10, nh = 30):
@@ -92,6 +92,8 @@ class GoogleFinance:
 
 if __name__ == "__main__":
 
+	fd = FinanceDatabase.FinanceDatabase('finance.db', 'GoogleFinance')
+
 	if len(sys.argv) < 2:
 		symbols = ['VTI', 'VXUS', 'TSLA', 'DIS']
 	else:
@@ -100,6 +102,8 @@ if __name__ == "__main__":
 	for smb in symbols:
 		gf = GoogleFinance(smb)
 		data = gf.getData()
+
+		fd.insertAll(smb, data['Date'], data['Close'])
 
 		# If data cannot be retreived, exit the program with an error:
 		if data is None:
