@@ -8,6 +8,7 @@ import BasicFinance, FinanceDatabase, FinancePlot
 class GoogleFinance:
 	def __init__(self, symbol, dts = datetime.now() - timedelta(days=365), dte = datetime.now(), nl = 10, nh = 30):
 		self.bf = BasicFinance.BasicFinance()
+		self.fd = FinanceDatabase.FinanceDatabase('finance.db', 'GoogleFinance')
 
 		self.symbol = symbol
 		
@@ -21,32 +22,44 @@ class GoogleFinance:
 		self.dd = (self.dte-self.dts).days
 		self.dtp = self.dte - timedelta(days=self.dd+7.0/5.0*self.nh+self.dd/30.0*3.0) # Take weekends and holidays into account
 
-		self.response = None
 		self.data = None
-
-		# If number of entries in db is different than this, download info:
-		print(len(self.bf.getTradingDays(self.dtp, self.dte)))
 
 		self.update()
 
 	def update(self):
-		self.fetchData()
-		self.parseData()
+		if not self.fetchData():
+			self.downloadData()
 
 	def getData(self):
 		return self.data
 
-	# Send values to remote webserver and download CSV reply:
 	def fetchData(self):
+		data = self.fd.fetchAll(self.symbol)
+		if data is None: return False
+
+		dateFormat = '%D'
+
+		ret = True
+
+		for act, exp in zip(data['Date'], [ts.to_pydatetime() for ts in self.bf.getTradingDays(self.dtp, self.dte)]):
+			if act.strftime(dateFormat) != exp.strftime(dateFormat):
+				ret = False
+
+		if ret:
+			self.data = data
+
+		return ret
+
+	# Send values to remote webserver and download CSV reply:
+	def downloadData(self):
 		dateFormat = '%m %d %Y'
 		url = 'http://www.google.com/finance/historical'
 		data = {'output': 'csv', 'q': self.symbol, 'startdate': self.dtp.strftime(dateFormat), 'enddate': self.dte.strftime(dateFormat)}
-		self.response = requests.get(url, params=data)
+		response = requests.get(url, params=data)
 
-	def parseData(self):
-		if self.response.status_code == 200:
+		if response.status_code == 200:
 			# Read in dataframe from CSV response and sort by date:
-			df = pandas.read_csv(StringIO(self.response.text))
+			df = pandas.read_csv(StringIO(response.text))
 			df['Date'] = pandas.to_datetime(df['Date'], format='%d-%b-%y')
 			df = df.sort_values('Date')
 
@@ -61,8 +74,12 @@ class GoogleFinance:
 			data['Date'] = [ts.to_pydatetime() for ts in data['Date']]
 
 			self.data = data
+			
+			self.fd.insertAll(self.symbol, self.data['Date'], self.data['Close'])
+		
 		else:
 			self.data = None
+
 
 	def printLatestCrossover(self, fund, crossovers):
 		print()
@@ -95,8 +112,6 @@ class GoogleFinance:
 
 if __name__ == "__main__":
 
-	fd = FinanceDatabase.FinanceDatabase('finance.db', 'GoogleFinance')
-
 	if len(sys.argv) < 2:
 		symbols = ['VTI', 'VXUS', 'TSLA', 'DIS']
 	else:
@@ -105,8 +120,6 @@ if __name__ == "__main__":
 	for smb in symbols:
 		gf = GoogleFinance(smb)
 		data = gf.getData()
-
-		fd.insertAll(smb, data['Date'], data['Close'])
 
 		# If data cannot be retreived, exit the program with an error:
 		if data is None:

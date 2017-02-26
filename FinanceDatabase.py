@@ -25,12 +25,15 @@ class FinanceDatabase:
 	def fetch(self, symbol, date):
 		self.c.execute("SELECT date, close FROM " + self.table + " WHERE symbol=? AND date=?", (symbol, date))
 		result = self.c.fetch()
-		return {'date': result[0], 'close': result[1]}
+		return {'Date': result[0], 'Close': result[1]}
 
 	def fetchAll(self, symbol):
 		self.c.execute("SELECT date, close FROM " + self.table + " WHERE symbol=? ORDER BY date ASC", (symbol, ))
 		result = list(zip(*self.c.fetchall()))
-		return {'date': result[0], 'close': result[1]}
+		if len(result) > 0:
+			return {'Date': result[0], 'Close': result[1]}
+		else:
+			return None
 
 	def close(self):
 		self.db.close()
