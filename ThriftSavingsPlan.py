@@ -115,7 +115,12 @@ class ThriftSavingsPlan:
 
 if __name__ == "__main__":
 
-	funds = [fund + ' Fund' for fund in ['G', 'F', 'C', 'S', 'I']]
+	if len(sys.argv) < 2:
+		funds = ['G', 'F', 'C', 'S', 'I']
+	else:
+		funds = sys.argv[1:]
+
+	funds = [fund + ' Fund' for fund in funds]
 
 	# Define image path in same directory as this script:
 	imgpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'images', 'tsp')
