@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 from matplotlib.dates import num2date, date2num
 import pandas as pd
 from pandas.tseries.offsets import CustomBusinessDay
-from pandas.tseries.holiday import AbstractHolidayCalendar, Holiday, nearest_workday, USMartinLutherKingJr, USPresidentsDay, GoodFriday, USMemorialDay, USLaborDay, USThanksgivingDay
+from pandas.tseries.holiday import AbstractHolidayCalendar, USFederalHolidayCalendar, Holiday, nearest_workday, USMartinLutherKingJr, USPresidentsDay, GoodFriday, USMemorialDay, USLaborDay, USThanksgivingDay
 
 class USTradingCalendar(AbstractHolidayCalendar):
 	rules = [
@@ -18,13 +18,17 @@ class USTradingCalendar(AbstractHolidayCalendar):
 		Holiday('ChristmasDay', month=12, day=25, observance=nearest_workday)
     ]
 
+class TSPTradingCalendar(AbstractHolidayCalendar):
+	rules = USFederalHolidayCalendar().rules
+	rules.append(GoodFriday)
+
 class BasicFinance:
 	def __init__(self):
 		pass
 
-	def getHolidays(self, dts, dte):
-		inst = USTradingCalendar()
-		return inst.holidays(dts, dte)
+	def getFederalTradingDays(self, dts, dte):
+		inst = CustomBusinessDay(calendar=TSPTradingCalendar())
+		return pd.DatetimeIndex(start=dts, end=dte, freq=inst)
 
 	def getTradingDays(self, dts, dte):
 		inst = CustomBusinessDay(calendar=USTradingCalendar())

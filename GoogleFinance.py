@@ -45,8 +45,7 @@ class GoogleFinance:
 			if act.strftime(dateFormat) != exp.strftime(dateFormat):
 				ret = False
 
-		if ret:
-			self.data = data
+		if ret: self.data = data
 
 		return ret
 
@@ -79,7 +78,6 @@ class GoogleFinance:
 		
 		else:
 			self.data = None
-
 
 	def printLatestCrossover(self, fund, crossovers):
 		print()
@@ -117,6 +115,9 @@ if __name__ == "__main__":
 	else:
 		symbols = sys.argv[1:]
 
+	# Define image path in same directory as this script:
+	imgpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'images', 'gf')
+
 	for smb in symbols:
 		gf = GoogleFinance(smb)
 		data = gf.getData()
@@ -126,10 +127,7 @@ if __name__ == "__main__":
 			print("Could not retrieve data from remote server for %s." % smb)
 			continue
 
-		# Define image path in same directory as this script:
-		imgpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'images', 'gf')
-
-		# Plot all TSP funds:
+		# Plot all GoogleFinance symbols:
 		fp = FinancePlot.FinancePlot('Google Finance', gf.dd, imgpath)
 		#fp.plotFunds(data, ['Close'])
 

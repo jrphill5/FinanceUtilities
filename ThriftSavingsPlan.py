@@ -3,11 +3,14 @@ from matplotlib.dates import date2num, num2date
 from datetime import datetime, timedelta
 from io import StringIO
 
-import BasicFinance, FinancePlot
+import BasicFinance, FinanceDatabase, FinancePlot
 
 class ThriftSavingsPlan:
-	def __init__(self, dts = datetime.now() - timedelta(days=365), dte = datetime.now(), nl = 10, nh = 30):
+	def __init__(self, fund, dts = datetime.now() - timedelta(days=365), dte = datetime.now(), nl = 10, nh = 30):
 		self.bf = BasicFinance.BasicFinance()
+		self.fd = FinanceDatabase.FinanceDatabase(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'finance.db'), 'ThriftSavingsPlan')
+
+		self.fund = fund
 
 		self.dts = dts
 		self.dte = dte
@@ -19,30 +22,45 @@ class ThriftSavingsPlan:
 		self.dd = (self.dte-self.dts).days
 		self.dtp = self.dte - timedelta(days=self.dd+7.0/5.0*self.nh+self.dd/30.0*3.0) # Take weekends and holidays into account
 
-		self.response = None
 		self.data = None
 
 		self.update()
 
 	def update(self):
-		self.fetchData()
-		self.parseData()
+		if not self.fetchData():
+			self.downloadData()
 
 	def getData(self):
 		return self.data
 
-	# POST values to remote webserver and download CSV reply:
 	def fetchData(self):
+		data = self.fd.fetchAll(self.fund)
+		if data is None: return False
+
+		data[self.fund] = data.pop('Close')
+
+		dateFormat = '%D'
+
+		ret = True
+
+		for act, exp in zip(data['Date'], [ts.to_pydatetime() for ts in self.bf.getFederalTradingDays(self.dtp, self.dte)]):
+			if act.strftime(dateFormat) != exp.strftime(dateFormat):
+				ret = False
+
+		if ret: self.data = data
+
+		return ret
+
+	# POST values to remote webserver and download CSV reply:
+	def downloadData(self):
 		dateFormat = '%m/%d/%Y'
 		url = 'https://www.tsp.gov/InvestmentFunds/FundPerformance/index.html'
 		data = {'whichButton': 'CSV', 'startdate': self.dtp.strftime(dateFormat), 'enddate': self.dte.strftime(dateFormat)}
-		self.response = requests.post(url, data=data)
+		response = requests.post(url, data=data)
 
-	# Create a clean dictionary with all CSV info from the TSP:
-	def parseData(self):
-		if self.response.status_code == 200:
+		if response.status_code == 200:
 			# Read in dataframe from CSV response and sort by date:
-			df = pandas.read_csv(StringIO(self.response.text))
+			df = pandas.read_csv(StringIO(response.text))
 			df['date'] = pandas.to_datetime(df['date'], format='%Y-%m-%d')
 			df = df.sort_values('date')
 
@@ -58,6 +76,11 @@ class ThriftSavingsPlan:
 			del data['date']
 
 			self.data = data
+
+			for k, v in data.items():
+				if k == 'Date': continue
+				self.fd.insertAll(k, self.data['Date'], self.data[k])
+
 		else:
 			self.data = None
 
@@ -92,20 +115,23 @@ class ThriftSavingsPlan:
 
 if __name__ == "__main__":
 
-	TSP = ThriftSavingsPlan()
-	data = TSP.getData()
-
-	# If data cannot be retreived, exit the program with an error:
-	if data is None:
-		sys.exit("Could not retrieve data from remote server.")
+	funds = [fund + ' Fund' for fund in ['G', 'F', 'C', 'S', 'I']]
 
 	# Define image path in same directory as this script:
 	imgpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'images', 'tsp')
 
-	# Plot all TSP funds:
-	fp = FinancePlot.FinancePlot('Thrift Savings Plan', TSP.dd, imgpath)
-	fp.plotFunds(data, ['G Fund', 'F Fund', 'C Fund', 'S Fund', 'I Fund'])
+	for fund in funds:
+		TSP = ThriftSavingsPlan(fund)
+		data = TSP.getData()
 
-	# Plot each TSP fund and their SMAs and signals:
-	for img, fund in {1: 'G', 2: 'F', 3: 'C', 4: 'S', 5: 'I'}.items():
-		fp.plotSMASignals(TSP, data['Date'], data[fund + ' Fund'], img, fund)
+		# If data cannot be retreived, exit the program with an error:
+		if data is None:
+			print("Could not retrieve data from remote server.")
+			continue
+
+		# Plot all TSP funds:
+		fp = FinancePlot.FinancePlot('Thrift Savings Plan', TSP.dd, imgpath)
+		#fp.plotFunds(data, ['G Fund', 'F Fund', 'C Fund', 'S Fund', 'I Fund'])
+
+		# Plot each TSP fund and their SMAs and signals:
+		fp.plotSMASignals(TSP, data['Date'], data[fund], 0, fund)
