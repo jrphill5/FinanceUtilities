@@ -92,9 +92,12 @@ class GoogleFinance:
 
 if __name__ == "__main__":
 
-	symbols = ['VTI', 'VXUS', 'TSLA', 'DIS']
+	if len(sys.argv) < 2:
+		symbols = ['VTI', 'VXUS', 'TSLA', 'DIS']
+	else:
+		symbols = sys.argv[1:]
 
-	for img, smb in enumerate(symbols):
+	for smb in symbols:
 		gf = GoogleFinance(smb)
 		data = gf.getData()
 
@@ -111,4 +114,4 @@ if __name__ == "__main__":
 		#fp.plotFunds(data, ['Close'])
 
 		# Plot symbol and the SMAs and signals:
-		fp.plotSMASignals(gf, data['Date'], data['Close'], img, smb)
+		fp.plotSMASignals(gf, data['Date'], data['Close'], 0, smb)
