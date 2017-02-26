@@ -96,7 +96,7 @@ class FinancePlot:
 		fp.definePlotLegend()
 
 		# Save a copy of the plot in the imgpath directory:
-		plt.savefig(os.path.join(self.imgpath, '00_AllFunds.png'), bbox_inches='tight')
+		plt.savefig(os.path.join(self.imgpath, 'AllFunds.png'), bbox_inches='tight')
 
 		# Display the plot:
 		plt.show(block=True)
@@ -130,7 +130,7 @@ class FinancePlot:
 		fp.setupPlot(t)
 
 		# Set relevant titles for window, figure, and axes:
-		fp.genPlotTitle(fund + ' Fund')
+		fp.genPlotTitle(fund)
 
 		fig = fp.getFig()
 		ax = fp.getAx()
@@ -162,7 +162,7 @@ class FinancePlot:
 		fp.definePlotLegend()
 
 		# Save a copy of the plot in the imgpath directory:
-		plt.savefig(os.path.join(self.imgpath, '0' + str(img) + '_' + fund + 'Fund.png'), bbox_inches='tight')
+		plt.savefig(os.path.join(self.imgpath, (fund + '.png').replace(' ', '')), bbox_inches='tight')
 
 		# Display the plot:
 		plt.show(block=True)
