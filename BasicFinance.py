@@ -1,3 +1,4 @@
+import pytz
 import numpy as np
 from datetime import datetime, timedelta
 from matplotlib.dates import num2date, date2num
@@ -38,7 +39,7 @@ class BasicFinance:
 		return dt.strftime("%m/%d/%Y")
 
 	def daysSince(self, dt):
-		return (num2date(date2num(datetime.now())) - dt).days
+		return (datetime.now().date() - dt.date()).days
 
 	# Define a simple moving average that replaces invalid positions with NaN:
 	def SMA(self, l, n):
