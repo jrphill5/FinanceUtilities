@@ -1,11 +1,26 @@
 #!/bin/bash
 
-rm /tmp/TSPEmail.txt
-rm $(dirname "$0")/images/tsp/*
+case "$1" in
+	tsp)
+		script="ThriftSavingsPlan.py"
+		;;
+	gf)
+		script="GoogleFinance.py"
+		;;
+	*)
+		echo $"Usage: $0 {tsp|gf}"
+		exit 1
+esac
 
-python3 $(dirname "$0")/ThriftSavingsPlan.py > /tmp/TSPEmail.txt
+name=$(echo $1 | awk '{print toupper($0)}')
+email="/tmp/${name}Email.txt"
 
-if [ -n "$(cat /tmp/TSPEmail.txt | grep '\!\!\!')" ]
-	then python3 $(dirname "$0")/TSPEmail.py --signal
-	else python3 $(dirname "$0")/TSPEmail.py --all
+rm $email
+rm $(dirname "$0")/images/$1/*
+
+python3 $(dirname "$0")/$script > $email
+
+if [ -n "$(cat $email | grep '\!\!\!')" ]
+	then python3 $(dirname "$0")/${name}Email.py --signal
+	else python3 $(dirname "$0")/${name}Email.py --all
 fi
