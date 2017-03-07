@@ -9,26 +9,50 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.image import MIMEImage
 
+import argparse
+parser = argparse.ArgumentParser()
+parser.add_argument("type", help="can be either tsp or gf")
+parser.add_argument("-s", "--signal", help="send email only if signal", action="store_true")
+args = parser.parse_args()
+
 msg = MIMEMultipart()
 
-if len(sys.argv) > 1 and sys.argv[1] == '--signal':
-	msg['Subject'] = 'TSP Signal Detected on ' + datetime.now().strftime('%m/%d/%Y')
+if not (args.type == 'tsp' or args.type == 'gf'):
+	print("Must select one of the following: tsp, gf.")
+	sys.exit()
+
+path = None
+name = None
+email = None
+
+if args.type == 'tsp':
+	path = 'tsp'
+	name = 'TSP'
+	email = '/tmp/TSPEmail.txt'
+
+if args.type == 'gf':
+	path = 'gf'
+	name = 'GoogleFinance'
+	email = '/tmp/GFEmail.txt'
+
+if args.signal:
+	msg['Subject'] = name + ' Signal Detected on ' + datetime.now().strftime('%m/%d/%Y')
 	EMAIL_TO = EMAIL_SIGNAL
 else:
-	msg['Subject'] = 'TSP Status for ' + datetime.now().strftime('%m/%d/%Y')
+	msg['Subject'] = name + ' Status for ' + datetime.now().strftime('%m/%d/%Y')
 
 msg['From'] = EMAIL_FROM
 msg['To'] = ', '.join(EMAIL_TO)
 
 try:
-	with open('/tmp/TSPEmail.txt', 'r') as fh:
+	with open(email, 'r') as fh:
 		text = MIMEText('<font face="Courier New, Courier, monospace">' + fh.read().replace(' ', '&nbsp;').replace('\n', '<br />') + '</font>', 'html')
 except:
-	text = MIMEText('<font face="Courier New, Courier, monospace">Attached are the most recent TSP charts with signals.</font>', 'html')
+	text = MIMEText('<font face="Courier New, Courier, monospace">Attached are the most recent ' + name + ' charts with signals.</font>', 'html')
 
 msg.attach(text)
 
-imgpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'images', 'tsp')
+imgpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'images', path)
 
 for imgfile in sorted(os.listdir(imgpath)):
 	with open(os.path.join(imgpath, imgfile), 'rb') as fp:

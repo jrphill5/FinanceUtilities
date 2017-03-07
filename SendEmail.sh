@@ -21,6 +21,6 @@ rm $(dirname "$0")/images/$1/*
 python3 $(dirname "$0")/$script > $email
 
 if [ -n "$(cat $email | grep '\!\!\!')" ]
-	then python3 $(dirname "$0")/${name}Email.py --signal
-	else python3 $(dirname "$0")/${name}Email.py --all
+	then python3 $(dirname "$0")/SendEmail.py $1 --signal
+	else python3 $(dirname "$0")/SendEmail.py $1
 fi
