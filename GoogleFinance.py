@@ -87,26 +87,16 @@ class GoogleFinance:
 			if s: sys.stdout.write('  B ')
 			else: sys.stdout.write('  S ')
 			sys.stdout.write(num2date(t).strftime('%m/%d/%Y ('))
-			sys.stdout.write(str(self.bf.daysSince(num2date(t))).rjust(len(str(self.dd))))
+			days = len(self.bf.getTradingDays(num2date(t), datetime.now().date()).tolist())
+			sys.stdout.write(str(days))
+			sys.stdout.write('|')
+			sys.stdout.write(str(self.bf.daysSince(num2date(t))))
 			sys.stdout.write(' days ago) @ $')
 			sys.stdout.write('{0:.2f}'.format(p))
-			return self.bf.daysSince(num2date(t)) == 0
+			return days <= 1
 		else:
 			sys.stdout.write('  None within ' + str(self.dd) + ' days!')
 			return False
-
-	def printAllCrossovers(self, fund, crossovers):
-		print(fund + ' fund crossover points:')
-		if crossovers:
-			for s, (t, p) in crossovers:
-				if s: sys.stdout.write('  B ')
-				else: sys.stdout.write('  S ')
-				sys.stdout.write(num2date(t).strftime('%m/%d/%Y ('))
-				sys.stdout.write(str(self.bf.daysSince(num2date(t))).rjust(len(str(self.dd))))
-				sys.stdout.write(' days ago) @ $')
-				print('{0:.2f}'.format(p))
-		else:
-			print('  None within ' + str(dd) + ' days!')
 
 if __name__ == "__main__":
 
