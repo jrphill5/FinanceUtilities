@@ -1,5 +1,5 @@
 import smtplib, os, sys
-from datetime import datetime
+from datetime import datetime, timedelta
 
 # Read authentication information from auth.py:
 # Variables EMAIL_HOST, EMAIL_PORT, EMAIL_HOST_USER, EMAIL_HOST_PASSWORD, EMAIL_FROM, EMAIL_TO, and EMAIL_SIGNAL should be defined.
@@ -8,6 +8,8 @@ with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'auth.py')) 
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.image import MIMEImage
+
+import BasicFinance
 
 import argparse
 parser = argparse.ArgumentParser()
@@ -25,15 +27,22 @@ path = None
 name = None
 email = None
 
+bf = BasicFinance.BasicFinance()
+
 if args.type == 'tsp':
 	path = 'tsp'
 	name = 'TSP'
 	email = '/tmp/TSPEmail.txt'
+	send = len(bf.getFederalTradingDays(datetime.now(), datetime.now()).tolist()) > 0
 
 if args.type == 'gf':
 	path = 'gf'
 	name = 'GoogleFinance'
 	email = '/tmp/GFEmail.txt'
+	send = len(bf.getTradingDays(datetime.now(), datetime.now()).tolist()) > 0
+
+if not send:
+	exit('Not a market day, not sending report!')
 
 if args.signal:
 	msg['Subject'] = name + ' Signal Detected on ' + datetime.now().strftime('%m/%d/%Y')
