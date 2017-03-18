@@ -101,7 +101,7 @@ class GoogleFinance:
 if __name__ == "__main__":
 
 	if len(sys.argv) < 2:
-		symbols = ['VTI', 'VXUS', 'TSLA', 'DIS']
+		symbols = ['VTI', 'VXUS', 'TSLA', 'DIS', 'RNN']
 	else:
 		symbols = sys.argv[1:]
 
