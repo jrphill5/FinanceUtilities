@@ -58,6 +58,9 @@ class BasicFinance:
 
 		# Detect change in sign at every point in the difference of two source lists:
 		for i in np.where(np.diff(np.sign((smanl-smanh))))[0].reshape(-1):
+			# If prices are the same, not a signal
+			if smanl[i] == smanh[i]: continue
+
 			# Compute slopes for both short term and long term SMA:
 			smanlm = (smanl[i+1]-smanl[i])/(dates[i+1]-dates[i])
 			smanhm = (smanh[i+1]-smanh[i])/(dates[i+1]-dates[i])
