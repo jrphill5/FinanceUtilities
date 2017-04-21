@@ -31,15 +31,21 @@ class BasicFinance:
 		inst = CustomBusinessDay(calendar=TSPTradingCalendar())
 		return pd.DatetimeIndex(start=dts, end=dte, freq=inst)
 
+	def getNextFederalTradingDay(self, dts):
+		return (self.getFederalTradingDays(dts.date()+timedelta(days=1), (dts+timedelta(days=7)).date()).tolist()[0]).date()
+
 	def getTradingDays(self, dts, dte):
 		inst = CustomBusinessDay(calendar=USTradingCalendar())
 		return pd.DatetimeIndex(start=dts, end=dte, freq=inst)
+
+	def getNextTradingDay(self, dts):
+		return (self.getTradingDays(dts.date()+timedelta(days=1), (dts+timedelta(days=7)).date()).tolist()[0]).date()
 
 	def formatDate(self, dt):
 		return dt.strftime("%m/%d/%Y")
 
 	def daysSince(self, dt):
-		return (datetime.now().date() - dt.date()).days
+		return (datetime.now().date() - dt).days
 
 	# Define a simple moving average that replaces invalid positions with NaN:
 	def SMA(self, l, n):

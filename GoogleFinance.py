@@ -86,14 +86,15 @@ class GoogleFinance:
 			s, (t, p) = crossovers[-1]
 			if s: sys.stdout.write('  B ')
 			else: sys.stdout.write('  S ')
-			sys.stdout.write(num2date(t).strftime('%m/%d/%Y ('))
-			days = len(self.bf.getTradingDays(num2date(t), datetime.now().date()).tolist())
+			dtc = self.bf.getNextTradingDay(num2date(t))
+			sys.stdout.write(dtc.strftime('%m/%d/%Y ('))
+			days = len(self.bf.getTradingDays(dtc, datetime.now().date()-timedelta(days=1)).tolist())
 			sys.stdout.write(str(days))
 			sys.stdout.write('|')
-			sys.stdout.write(str(self.bf.daysSince(num2date(t))))
+			sys.stdout.write(str(self.bf.daysSince(dtc)))
 			sys.stdout.write(' days ago) @ $')
 			sys.stdout.write('{0:.2f}'.format(p))
-			return days <= 1
+			return days == 0
 		else:
 			sys.stdout.write('  None within ' + str(self.dd) + ' days!')
 			return False
