@@ -110,10 +110,12 @@ class BasicFinance:
 				if s:
 					if verbose: sys.stdout.write('bought')
 					bl = (ts, ps)
+					ps = p[list(t).index(max(filter(lambda x: x < ts, t)))]
 					gain -= ps
 				else:
 					if verbose: sys.stdout.write('sold')
 					sl = (ts, ps)
+					ps = p[list(t).index(max(filter(lambda x: x < ts, t)))]
 					gain += ps
 			if verbose: print(' on ' + num2date(ts).strftime('%m/%d/%y') + ' for $' + '{0:.2f}'.format(ps))
 
