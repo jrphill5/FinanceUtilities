@@ -50,6 +50,8 @@ if args.signal:
 else:
 	msg['Subject'] = name + ' Status for ' + datetime.now().strftime('%m/%d/%Y')
 
+if not EMAIL_TO: sys.exit()
+
 msg['From'] = EMAIL_FROM
 msg['To'] = ', '.join(EMAIL_TO)
 
