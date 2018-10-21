@@ -130,4 +130,4 @@ if __name__ == "__main__":
 		#fp.plotFunds(data, ['G Fund', 'F Fund', 'C Fund', 'S Fund', 'I Fund'])
 
 		# Plot each TSP fund and their SMAs and signals:
-		fp.plotSMASignals(TSP, data['Date'], data[fund], 0, fund, 'EWMA')
+		fp.plotSignals(TSP, data['Date'], data[fund], 0, fund, 'EWMA')
