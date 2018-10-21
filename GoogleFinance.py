@@ -123,4 +123,4 @@ if __name__ == "__main__":
 		#fp.plotFunds(data, ['Close'])
 
 		# Plot symbol and the SMAs and signals:
-		fp.plotSMASignals(gf, data['Date'], data['Close'], 0, smb)
+		fp.plotSignals(gf, data['Date'], data['Close'], 0, smb, 'EWMA')

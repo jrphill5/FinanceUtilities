@@ -59,6 +59,9 @@ class BasicFinance:
 
 	# Define an exponential weighted moving average:
 	def EWMA(self, data, window):
+		if type(data) == list:
+			data = np.array(data)
+
 		alpha = 2 / (window + 1.)
 		alpha_rev = 1 - alpha
 

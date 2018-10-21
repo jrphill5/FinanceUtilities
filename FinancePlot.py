@@ -104,12 +104,20 @@ class FinancePlot:
 		# Close the plot:
 		plt.close()
 
-	def plotSMASignals(self, finObj, t, p, img, fund):
+	def plotSignals(self, finObj, t, p, img, fund, avgtype):
+
+		avgtypes = ['SMA', 'EWMA']
+		if avgtype not in avgtypes: avgtype = 'SMA'
+
 		# Define datasets for analysis:
 		dates = np.array(date2num(t))
 		price = np.array(p)
-		smanl = np.array(self.bf.SMA(p, finObj.nl))
-		smanh = np.array(self.bf.SMA(p, finObj.nh))
+		if avgtype == 'SMA':
+			smanl = np.array(self.bf.SMA(p, finObj.nl))
+			smanh = np.array(self.bf.SMA(p, finObj.nh))
+		elif avgtype == 'EWMA':
+			smanl = np.array(self.bf.EWMA(p, finObj.nl))
+			smanh = np.array(self.bf.EWMA(p, finObj.nh))
 
 		# Determine which datapoints are out of range:
 		cut = 0
@@ -150,8 +158,8 @@ class FinancePlot:
 	
 		# Plot price and short term and long term moving averages:
 		ax.plot_date(dates, price, '-', label="Close Values")
-		ax.plot_date(dates, smanl, '-', label=str(finObj.nl) + " Day SMA")
-		ax.plot_date(dates, smanh, '-', label=str(finObj.nh) + " Day SMA")
+		ax.plot_date(dates, smanl, '-', label=str(finObj.nl) + " Day " + avgtype)
+		ax.plot_date(dates, smanh, '-', label=str(finObj.nh) + " Day " + avgtype)
 
 		# Plot buy and sell crossover signals:
 		if crossovers:
