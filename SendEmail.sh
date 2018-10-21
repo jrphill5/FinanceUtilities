@@ -4,11 +4,11 @@ case "$1" in
 	tsp)
 		script="ThriftSavingsPlan.py"
 		;;
-	gf)
-		script="GoogleFinance.py"
+	av)
+		script="AlphaVantage.py"
 		;;
 	*)
-		echo $"Usage: $0 {tsp|gf}"
+		echo $"Usage: $0 {tsp|av}"
 		exit 1
 esac
 

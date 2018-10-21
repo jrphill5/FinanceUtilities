@@ -2,7 +2,7 @@ import smtplib, os, sys
 from datetime import datetime, timedelta
 
 # Read authentication information from auth.py:
-# Variables EMAIL_HOST, EMAIL_PORT, EMAIL_HOST_USER, EMAIL_HOST_PASSWORD, EMAIL_FROM, EMAIL_TO, and EMAIL_SIGNAL should be defined.
+# Variables EMAIL_HOST, EMAIL_PORT, EMAIL_HOST_USER, EMAIL_HOST_PASSWORD, EMAIL_FROM, EMAIL_TO, EMAIL_SIGNAL, and EMAIL_AVSIG should be defined.
 with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'auth.py')) as f: exec(f.read())
 
 from email.mime.multipart import MIMEMultipart
@@ -13,14 +13,14 @@ import BasicFinance
 
 import argparse
 parser = argparse.ArgumentParser()
-parser.add_argument("type", help="can be either tsp or gf")
+parser.add_argument("type", help="can be either tsp or av")
 parser.add_argument("-s", "--signal", help="send email only if signal", action="store_true")
 args = parser.parse_args()
 
 msg = MIMEMultipart()
 
-if not (args.type == 'tsp' or args.type == 'gf'):
-	print("Must select one of the following: tsp, gf.")
+if not (args.type == 'tsp' or args.type == 'av'):
+	print("Must select one of the following: tsp, av.")
 	sys.exit()
 
 path = None
@@ -35,10 +35,10 @@ if args.type == 'tsp':
 	email = '/tmp/TSPEmail.txt'
 	send = len(bf.getFederalTradingDays(datetime.now(), datetime.now()).tolist()) > 0
 
-if args.type == 'gf':
-	path = 'gf'
-	name = 'GoogleFinance'
-	email = '/tmp/GFEmail.txt'
+if args.type == 'av':
+	path = 'av'
+	name = 'Alpha Vantage'
+	email = '/tmp/AVEmail.txt'
 	send = len(bf.getTradingDays(datetime.now(), datetime.now()).tolist()) > 0
 
 if not send:
@@ -46,7 +46,10 @@ if not send:
 
 if args.signal:
 	msg['Subject'] = name + ' Signal Detected on ' + datetime.now().strftime('%m/%d/%Y')
-	EMAIL_TO = EMAIL_SIGNAL
+	if args.type == 'tsp':
+		EMAIL_TO = EMAIL_AVSIG
+	else:
+		EMAIL_TO = EMAIL_SIGNAL
 else:
 	msg['Subject'] = name + ' Status for ' + datetime.now().strftime('%m/%d/%Y')
 

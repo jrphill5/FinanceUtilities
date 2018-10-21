@@ -122,7 +122,7 @@ class AlphaVantage:
 if __name__ == "__main__":
 
 	if len(sys.argv) < 2:
-		symbols = ['DIS', 'TSLA', 'SWTSX', 'SWISX']
+		symbols = ['SWTSX', 'SWISX']
 	else:
 		symbols = sys.argv[1:]
 
