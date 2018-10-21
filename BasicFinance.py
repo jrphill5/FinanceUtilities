@@ -57,6 +57,24 @@ class BasicFinance:
 		# Return result
 		return ma
 
+	# Define an exponential weighted moving average:
+	def EWMA(self, data, window):
+		alpha = 2 / (window + 1.)
+		alpha_rev = 1 - alpha
+
+		scale = 1 / alpha_rev
+		n = data.shape[0]
+
+		r = np.arange(n)
+		scale_arr = scale ** r
+		offset = data[0] * alpha_rev ** (r + 1)
+		pw0 = alpha * alpha_rev ** (n - 1)
+
+		mult = data * pw0 * scale_arr
+		cumsums = mult.cumsum()
+
+		return offset + cumsums * scale_arr[::-1]
+
 	# Detect buy and sell crossovers of two SMA lists and return signals:
 	def detectCrossovers(self, dates, smanl, smanh, dd):
 		# Create empty data structure:
