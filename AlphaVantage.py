@@ -34,20 +34,31 @@ class AlphaVantage:
 		return self.data
 
 	def fetchData(self):
-		data = self.fd.fetchAll(self.symbol)
-		if data is None: return False
+		# Attempt to read in data from database:
+		stored = self.fd.fetchAll(self.symbol)
+		if stored is None: return False
 
-		dateFormat = '%D'
+		# Define data structure for holding quote information:
+		data = { 'Date':     [], 'Open':     [], 'High':     [],
+		         'Low':      [], 'Close':    [], 'CloseAdj': [],
+		         'Volume':   [], 'Dividend': [], 'Split':    []  }
 
-		ret = True
+		# Populate data structure with information from database:
+		for d, c in zip(stored['Date'], stored['Close']):
+			if d >= self.dtp and d <= self.dte:
+				data['Date'].append(d)
+				data['CloseAdj'].append(c)
 
-		for act, exp in zip(data['Date'], [ts.to_pydatetime() for ts in self.bf.getTradingDays(self.dtp, self.dte)]):
-			if act.strftime(dateFormat) != exp.strftime(dateFormat):
-				ret = False
+		# Determine expected and actual trading days:
+		acts = [d.strftime('%D') for d in data['Date']]
+		exps = [d.strftime('%D') for d in self.bf.getTradingDays(self.dtp, self.dte)]
 
-		if ret: self.data = data
-
-		return ret
+		# If not equal, data is missing, so download:
+		if acts == exps:
+			self.data = data
+			return True
+		else:
+			return False
 
 	# Send values to remote webserver and download CSV reply:
 	def downloadData(self):
@@ -70,14 +81,14 @@ class AlphaVantage:
 				date = datetime.strptime(k, '%Y-%m-%d')
 				if date >= self.dtp and date <= self.dte:
 					data['Date'].append(     date)
-					data['Open'].append(     float(v['1. open']))
-					data['High'].append(     float(v['2. high']))
-					data['Low'].append(      float(v['3. low']))
-					data['Close'].append(    float(v['4. close']))
+					#data['Open'].append(     float(v['1. open']))
+					#data['High'].append(     float(v['2. high']))
+					#data['Low'].append(      float(v['3. low']))
+					#data['Close'].append(    float(v['4. close']))
 					data['CloseAdj'].append( float(v['5. adjusted close']))
-					data['Volume'].append(   int(  v['6. volume']))
-					data['Dividend'].append( float(v['7. dividend amount']))
-					data['Split'].append(    float(v['8. split coefficient']))
+					#data['Volume'].append(   int(  v['6. volume']))
+					#data['Dividend'].append( float(v['7. dividend amount']))
+					#data['Split'].append(    float(v['8. split coefficient']))
 
 			# Store this data in the object:
 			self.data = data
@@ -111,12 +122,12 @@ class AlphaVantage:
 if __name__ == "__main__":
 
 	if len(sys.argv) < 2:
-		symbols = ['SWTSX', 'SWISX']
+		symbols = ['DIS', 'TSLA', 'SWTSX', 'SWISX']
 	else:
 		symbols = sys.argv[1:]
 
 	# Define image path in same directory as this script:
-	imgpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'images', 'gf')
+	imgpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'images', 'av')
 
 	for smb in symbols:
 		av = AlphaVantage(smb)
@@ -129,7 +140,7 @@ if __name__ == "__main__":
 
 		# Plot all Alpha Vantage symbols:
 		fp = FinancePlot.FinancePlot('Alpha Vantage', av.dd, imgpath)
-		#fp.plotFunds(data, ['Close'])
+		#fp.plotFunds(data, ['CloseAdj'])
 
 		# Plot symbol and the SMAs and signals:
-		fp.plotSignals(av, data['Date'], data['Close'], 0, smb, 'EWMA')
+		fp.plotSignals(av, data['Date'], data['CloseAdj'], 0, smb, 'EWMA')
