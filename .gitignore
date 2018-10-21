@@ -94,5 +94,8 @@ images/
 # SMTP auth details
 auth.py
 
+# API key information
+avapi.py
+
 # SQLite databases
 *.db
