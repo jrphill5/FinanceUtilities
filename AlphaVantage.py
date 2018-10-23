@@ -72,15 +72,24 @@ class AlphaVantage:
 			# Read in JSON from response:
 			raw  = resp.json()
 
-			# Define date format used by Alpha Vantage
-			datefmt = '%Y-%m-%d'
+			# Define date and time formats used by Alpha Vantage
+			datefmt = '%Y-%m-%d'; datelen = 10
+			timefmt = '%H:%M:%S'; timelen =  8
 
-			# Store header and generate dict of lists for data:
+			# Store header and parse last updated date and time:
 			head = { 'Info':     raw['Meta Data']['1. Information'],
 			         'Symbol':   raw['Meta Data']['2. Symbol'],
-					 'Updated':  datetime.strptime(raw['Meta Data']['3. Last Refreshed'], datefmt),
+					 'Updated':  raw['Meta Data']['3. Last Refreshed'],
 					 'Output':   raw['Meta Data']['4. Output Size'],
 					 'TimeZone': raw['Meta Data']['5. Time Zone']       }
+			if len(head['Updated']) == datelen:
+				head['Updated'] = datetime.strptime(head['Updated'], datefmt)
+			elif len(head['Updated']) == datelen+timelen+1:
+				head['Updated'] = datetime.strptime(head['Updated'], datefmt+' '+timefmt)
+			else:
+				head['Updated'] = datetime(1970, 1, 1)
+
+			# Generate dict of lists for data:
 			data = { 'Date':     [], 'Open':     [], 'High':     [],
 			         'Low':      [], 'Close':    [], 'CloseAdj': [],
 			         'Volume':   [], 'Dividend': [], 'Split':    []  }

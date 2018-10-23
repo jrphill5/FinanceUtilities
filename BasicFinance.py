@@ -44,6 +44,9 @@ class BasicFinance:
 	def formatDate(self, dt):
 		return dt.strftime("%Y/%m/%d")
 
+	def formatTime(self, dt):
+		return dt.strftime("%H:%M:%S")
+
 	def daysSince(self, dt):
 		return (datetime.now().date() - dt).days
 

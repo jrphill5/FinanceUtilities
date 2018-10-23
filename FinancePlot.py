@@ -60,7 +60,10 @@ class FinancePlot:
 	def genPlotTitle(self, fund, updated=None):
 		title  = "%s %s from %s to %s" % (self.source, fund, self.bf.formatDate(min(self.t)), self.bf.formatDate(max(self.t)))
 		if updated is not None:
-			title += " [Updated " + self.bf.formatDate(updated) + "]"
+			title += " [Updated " + self.bf.formatDate(updated)
+			if self.bf.formatTime(updated) != self.bf.formatTime(datetime(1970, 1, 1)):
+				title += " " + self.bf.formatTime(updated)
+			title += "]"
 		self.fig.canvas.set_window_title("%s %s" % (self.source, fund))
 		self.ax.set_title(title)
 
