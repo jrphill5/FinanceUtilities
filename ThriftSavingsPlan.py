@@ -8,7 +8,7 @@ import BasicFinance, FinanceDatabase, FinancePlot
 class ThriftSavingsPlan:
 	def __init__(self, fund, dts = datetime.now() - timedelta(days=365), dte = datetime.now(), nl = 10, nh = 30):
 		self.bf = BasicFinance.BasicFinance()
-		self.fd = FinanceDatabase.FinanceDatabase(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'finance.db'), 'ThriftSavingsPlan')
+		#self.fd = FinanceDatabase.FinanceDatabase(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'finance.db'), 'ThriftSavingsPlan')
 
 		self.fund = fund
 

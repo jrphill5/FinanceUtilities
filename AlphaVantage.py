@@ -8,7 +8,7 @@ import BasicFinance, FinanceDatabase, FinancePlot
 class AlphaVantage:
 	def __init__(self, symbol, dts = datetime.now() - timedelta(days=365), dte = datetime.now(), nl = 10, nh = 30):
 		self.bf = BasicFinance.BasicFinance()
-		self.fd = FinanceDatabase.FinanceDatabase(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'finance.db'), 'AlphaVantage')
+		#self.fd = FinanceDatabase.FinanceDatabase(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'finance.db'), 'AlphaVantage')
 
 		self.symbol = symbol
 		
