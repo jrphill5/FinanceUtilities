@@ -54,7 +54,7 @@ class FinancePlot:
 	def definePlotLegend(self):
 		# Display legend as well as major and minor gridlines:
 		handles, labels = self.ax.get_legend_handles_labels()
-		self.ax.legend(handles, labels, loc=8, ncol=len(labels), fontsize=10)
+		self.ax.legend(handles, labels, loc=8, ncol=len(labels), fontsize=12)
 		self.ax.grid(which='both')
 
 	def genPlotTitle(self, fund, updated=None):
