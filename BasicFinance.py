@@ -36,13 +36,13 @@ class BasicFinance:
 
 	def getTradingDays(self, dts, dte):
 		inst = CustomBusinessDay(calendar=USTradingCalendar())
-		return pd.DatetimeIndex(start=dts, end=dte, freq=inst, closed='right')
+		return pd.DatetimeIndex(start=dts, end=dte, freq=inst)
 
 	def getNextTradingDay(self, dts):
 		return (self.getTradingDays(dts.date()+timedelta(days=1), (dts+timedelta(days=7)).date()).tolist()[0]).date()
 
 	def formatDate(self, dt):
-		return dt.strftime("%m/%d/%Y")
+		return dt.strftime("%Y/%m/%d")
 
 	def daysSince(self, dt):
 		return (datetime.now().date() - dt).days

@@ -34,22 +34,24 @@ class ThriftSavingsPlan:
 		return self.data
 
 	def fetchData(self):
-		data = self.fd.fetchAll(self.fund)
-		if data is None: return False
+		return False
 
-		data[self.fund] = data.pop('Close')
+		#data = self.fd.fetchAll(self.fund)
+		#if data is None: return False
 
-		dateFormat = '%D'
+		#data[self.fund] = data.pop('Close')
 
-		ret = True
+		#dateFormat = '%D'
 
-		for act, exp in zip(data['Date'], [ts.to_pydatetime() for ts in self.bf.getFederalTradingDays(self.dtp, self.dte)]):
-			if act.strftime(dateFormat) != exp.strftime(dateFormat):
-				ret = False
+		#ret = True
 
-		if ret: self.data = data
+		#for act, exp in zip(data['Date'], [ts.to_pydatetime() for ts in self.bf.getFederalTradingDays(self.dtp, self.dte)]):
+		#	if act.strftime(dateFormat) != exp.strftime(dateFormat):
+		#		ret = False
 
-		return ret
+		#if ret: self.data = data
+
+		#return ret
 
 	# POST values to remote webserver and download CSV reply:
 	def downloadData(self):
@@ -77,9 +79,9 @@ class ThriftSavingsPlan:
 
 			self.data = data
 
-			for k, v in data.items():
-				if k == 'Date': continue
-				self.fd.insertAll(k, self.data['Date'], self.data[k])
+			#for k, v in data.items():
+			#	if k == 'Date': continue
+			#	self.fd.insertAll(k, self.data['Date'], self.data[k])
 
 		else:
 			self.data = None
@@ -111,7 +113,7 @@ if __name__ == "__main__":
 	else:
 		funds = sys.argv[1:]
 
-	funds = [fund + ' Fund' for fund in funds]
+	funds = [fund.upper() + ' Fund' for fund in funds]
 
 	# Define image path in same directory as this script:
 	imgpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'images', 'tsp')
@@ -127,7 +129,6 @@ if __name__ == "__main__":
 
 		# Plot all TSP funds:
 		fp = FinancePlot.FinancePlot('Thrift Savings Plan', TSP.dd, imgpath)
-		#fp.plotFunds(data, ['G Fund', 'F Fund', 'C Fund', 'S Fund', 'I Fund'])
 
 		# Plot each TSP fund and their SMAs and signals:
 		fp.plotSignals(TSP, data['Date'], data[fund], 0, fund, 'EWMA')

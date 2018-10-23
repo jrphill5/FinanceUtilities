@@ -14,7 +14,7 @@ class AlphaVantage:
 		
 		self.dts = dts
 		self.dte = dte
-		
+
 		self.nl = nl
 		self.nh = nh
 
@@ -22,6 +22,7 @@ class AlphaVantage:
 		self.dd = (self.dte-self.dts).days
 		self.dtp = self.dte - timedelta(days=self.dd+7.0/5.0*self.nh+self.dd/30.0*3.0) # Take weekends and holidays into account
 
+		self.head = None
 		self.data = None
 
 		self.update()
@@ -34,31 +35,32 @@ class AlphaVantage:
 		return self.data
 
 	def fetchData(self):
+		return False
 		# Attempt to read in data from database:
-		stored = self.fd.fetchAll(self.symbol)
-		if stored is None: return False
+		#stored = self.fd.fetchAll(self.symbol)
+		#if stored is None: return False
 
 		# Define data structure for holding quote information:
-		data = { 'Date':     [], 'Open':     [], 'High':     [],
-		         'Low':      [], 'Close':    [], 'CloseAdj': [],
-		         'Volume':   [], 'Dividend': [], 'Split':    []  }
+		#data = { 'Date':     [], 'Open':     [], 'High':     [],
+		#         'Low':      [], 'Close':    [], 'CloseAdj': [],
+		#         'Volume':   [], 'Dividend': [], 'Split':    []  }
 
 		# Populate data structure with information from database:
-		for d, c in zip(stored['Date'], stored['Close']):
-			if d >= self.dtp and d <= self.dte:
-				data['Date'].append(d)
-				data['CloseAdj'].append(c)
+		#for d, c in zip(stored['Date'], stored['Close']):
+		#	if d >= self.dtp and d <= self.dte:
+		#		data['Date'].append(d)
+		#		data['CloseAdj'].append(c)
 
 		# Determine expected and actual trading days:
-		acts = [d.strftime('%D') for d in data['Date']]
-		exps = [d.strftime('%D') for d in self.bf.getTradingDays(self.dtp, self.dte)]
+		#acts = [d.strftime('%D') for d in data['Date']]
+		#exps = [d.strftime('%D') for d in self.bf.getTradingDays(self.dtp, self.dte)]
 
 		# If not equal, data is missing, so download:
-		if acts == exps:
-			self.data = data
-			return True
-		else:
-			return False
+		#if acts == exps:
+		#	self.data = data
+		#	return True
+		#else:
+		#	return False
 
 	# Send values to remote webserver and download CSV reply:
 	def downloadData(self):
@@ -70,31 +72,39 @@ class AlphaVantage:
 			# Read in JSON from response:
 			raw  = resp.json()
 
+			# Define date format used by Alpha Vantage
+			datefmt = '%Y-%m-%d'
+
 			# Store header and generate dict of lists for data:
-			head = raw['Meta Data']
+			head = { 'Info':     raw['Meta Data']['1. Information'],
+			         'Symbol':   raw['Meta Data']['2. Symbol'],
+					 'Updated':  datetime.strptime(raw['Meta Data']['3. Last Refreshed'], datefmt),
+					 'Output':   raw['Meta Data']['4. Output Size'],
+					 'TimeZone': raw['Meta Data']['5. Time Zone']       }
 			data = { 'Date':     [], 'Open':     [], 'High':     [],
 			         'Low':      [], 'Close':    [], 'CloseAdj': [],
 			         'Volume':   [], 'Dividend': [], 'Split':    []  }
 
 			# Populate data structure with information in JSON response:
 			for k, v in sorted(raw['Time Series (Daily)'].items()):
-				date = datetime.strptime(k, '%Y-%m-%d')
+				date = datetime.strptime(k, datefmt)
 				if date >= self.dtp and date <= self.dte:
 					data['Date'].append(     date)
-					#data['Open'].append(     float(v['1. open']))
-					#data['High'].append(     float(v['2. high']))
-					#data['Low'].append(      float(v['3. low']))
-					#data['Close'].append(    float(v['4. close']))
+					data['Open'].append(     float(v['1. open']))
+					data['High'].append(     float(v['2. high']))
+					data['Low'].append(      float(v['3. low']))
+					data['Close'].append(    float(v['4. close']))
 					data['CloseAdj'].append( float(v['5. adjusted close']))
-					#data['Volume'].append(   int(  v['6. volume']))
-					#data['Dividend'].append( float(v['7. dividend amount']))
-					#data['Split'].append(    float(v['8. split coefficient']))
+					data['Volume'].append(   int(  v['6. volume']))
+					data['Dividend'].append( float(v['7. dividend amount']))
+					data['Split'].append(    float(v['8. split coefficient']))
 
 			# Store this data in the object:
+			self.head = head
 			self.data = data
-			
+
 			# Insert information into database:
-			self.fd.insertAll(self.symbol, self.data['Date'], self.data['CloseAdj'])
+			#self.fd.insertAll(self.symbol, self.data['Date'], self.data['CloseAdj'])
 		
 		else:
 			self.data = None
@@ -126,6 +136,8 @@ if __name__ == "__main__":
 	else:
 		symbols = sys.argv[1:]
 
+	symbols = [s.upper() for s in symbols]
+
 	# Define image path in same directory as this script:
 	imgpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'images', 'av')
 
@@ -140,7 +152,6 @@ if __name__ == "__main__":
 
 		# Plot all Alpha Vantage symbols:
 		fp = FinancePlot.FinancePlot('Alpha Vantage', av.dd, imgpath)
-		#fp.plotFunds(data, ['CloseAdj'])
 
 		# Plot symbol and the SMAs and signals:
-		fp.plotSignals(av, data['Date'], data['CloseAdj'], 0, smb, 'EWMA')
+		fp.plotSignals(av, data['Date'], data['CloseAdj'], 0, smb, 'EWMA', av.head['Updated'])

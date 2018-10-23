@@ -42,7 +42,7 @@ class FinancePlot:
 		self.ax.xaxis.set_major_formatter(DateFormatter("%b %Y"))
 		#self.ax.xaxis.set_minor_locator(MonthLocator(range(1, 13), bymonthday=1, interval=1))
 		self.ax.yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
-		self.ax.set_xlim([date2num(self.t[len(self.t)-1]-timedelta(days=self.dd+1)), date2num(self.t[len(self.t)-1])])
+		self.ax.set_xlim([date2num(min(self.t)), date2num(max(self.t))])
 
 		# Create a directory to store images if it does not already exist:
 		if not os.path.exists(self.imgpath): os.makedirs(self.imgpath)
@@ -54,57 +54,17 @@ class FinancePlot:
 	def definePlotLegend(self):
 		# Display legend as well as major and minor gridlines:
 		handles, labels = self.ax.get_legend_handles_labels()
-		self.ax.legend(handles, labels, loc=8, ncol=len(labels), fontsize=12)
+		self.ax.legend(handles, labels, loc=8, ncol=len(labels), fontsize=10)
 		self.ax.grid(which='both')
 
-	def genPlotTitle(self, fund):
-		self.fig.canvas.set_window_title(self.source + ' ' + fund)
-		self.ax.set_title(self.source + ' ' + fund + ' from ' + self.bf.formatDate(self.t[len(self.t)-1]-timedelta(days=self.dd+1)) + ' to ' + self.bf.formatDate(self.t[len(self.t)-1]))
+	def genPlotTitle(self, fund, updated=None):
+		title  = "%s %s from %s to %s" % (self.source, fund, self.bf.formatDate(min(self.t)), self.bf.formatDate(max(self.t)))
+		if updated is not None:
+			title += " [Updated " + self.bf.formatDate(updated) + "]"
+		self.fig.canvas.set_window_title("%s %s" % (self.source, fund))
+		self.ax.set_title(title)
 
-	def plotFunds(self, finData, funds):
-		t = finData['Date']
-
-		# Define datasets for analysis:
-		dates = date2num(t)
-
-		# Determine which datapoints are out of range:
-		cut = 0
-		for i, date in enumerate(dates):
-			if date > date2num((t[len(t)-1]-timedelta(days=self.dd+1))):
-				cut = i - 1
-				if cut < 0: cut = 0
-				break
-
-		# Trim all data points to be in range:
-		dates = dates[cut:]
-
-		# Initialize plot:
-		fp = FinancePlot(self.source, self.dd, self.imgpath)
-		fp.setupPlot(t)
-
-		# Set relevant titles for the window and figure:
-		fp.genPlotTitle('Funds')
-
-		fig = fp.getFig()
-		ax = fp.getAx()
-
-		# Plot prices for all funds in list:
-		for fund in funds:
-			ax.plot_date(dates, finData[fund][cut:], '-', label=fund)
-
-		# Define plot legend and add gridlines:
-		fp.definePlotLegend()
-
-		# Save a copy of the plot in the imgpath directory:
-		plt.savefig(os.path.join(self.imgpath, 'AllFunds.png'), bbox_inches='tight')
-
-		# Display the plot:
-		plt.show(block=True)
-
-		# Close the plot:
-		plt.close()
-
-	def plotSignals(self, finObj, t, p, img, fund, avgtype):
+	def plotSignals(self, finObj, t, p, img, fund, avgtype, updateTime=None):
 
 		avgtypes = ['SMA', 'EWMA']
 		if avgtype not in avgtypes: avgtype = 'SMA'
@@ -113,38 +73,38 @@ class FinancePlot:
 		dates = np.array(date2num(t))
 		price = np.array(p)
 		if avgtype == 'SMA':
-			smanl = np.array(self.bf.SMA(p, finObj.nl))
-			smanh = np.array(self.bf.SMA(p, finObj.nh))
+			nl = np.array(self.bf.SMA(p, finObj.nl))
+			nh = np.array(self.bf.SMA(p, finObj.nh))
 		elif avgtype == 'EWMA':
-			smanl = np.array(self.bf.EWMA(p, finObj.nl))
-			smanh = np.array(self.bf.EWMA(p, finObj.nh))
+			nl = np.array(self.bf.EWMA(p, finObj.nl))
+			nh = np.array(self.bf.EWMA(p, finObj.nh))
 
 		# Determine which datapoints are out of range:
 		cut = 0
 		for i, date in enumerate(dates):
-			if date > date2num((t[len(t)-1]-timedelta(days=self.dd+1))):
+			if date > date2num(max(t)-timedelta(days=self.dd-1)):
 				cut = i - 1
 				if cut < 0: cut = 0
 				break
 
 		# Trim all data points to be in range:
+		t = t[cut:]
 		dates = dates[cut:]
 		price = price[cut:]
-		smanl = smanl[cut:]
-		smanh = smanh[cut:]
+		nl = nl[cut:]
+		nh = nh[cut:]
 
 		# Initialize plot:
 		fp = FinancePlot(self.source, self.dd, self.imgpath)
 		fp.setupPlot(t)
 
 		# Set relevant titles for window, figure, and axes:
-		fp.genPlotTitle(fund)
-
+		fp.genPlotTitle(fund, updateTime)
 		fig = fp.getFig()
 		ax = fp.getAx()
 
 		# Detect and print exact crossover signals:
-		crossovers = self.bf.detectCrossovers(dates, smanl, smanh, self.dd)
+		crossovers = self.bf.detectCrossovers(dates, nl, nh, self.dd)
 		if finObj.printLatestCrossover(fund, crossovers):
 			print(' !!!')
 		else: print('');
@@ -158,8 +118,8 @@ class FinancePlot:
 	
 		# Plot price and short term and long term moving averages:
 		ax.plot_date(dates, price, '-', label="Close Values")
-		ax.plot_date(dates, smanl, '-', label=str(finObj.nl) + " Day " + avgtype)
-		ax.plot_date(dates, smanh, '-', label=str(finObj.nh) + " Day " + avgtype)
+		ax.plot_date(dates, nl,    '-', label="%d Day %s" % (finObj.nl, avgtype))
+		ax.plot_date(dates, nh,    '-', label="%d Day %s" % (finObj.nh, avgtype))
 
 		# Plot buy and sell crossover signals:
 		if crossovers:
