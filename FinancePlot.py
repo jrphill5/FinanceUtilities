@@ -113,7 +113,10 @@ class FinancePlot:
 		else: print('');
 
 		# Print comparison between staying fully invested and following signals:
-		print(fund + ' fund performance:')
+		if "fund" in fund.lower():
+			print(fund + ' performance:')
+		else:
+			print(fund + ' fund performance:')
 		for desc, data in [('Invested', self.bf.calcPIPFI(dates, price)), ('Signaled', self.bf.calcPIPFS(dates, price, crossovers)), ('Variance', np.subtract(self.bf.calcPIPFS(dates, price, crossovers), self.bf.calcPIPFI(dates, price)))]:
 			sys.stdout.write('  ' + desc + ' ')
 			sys.stdout.write('{0:+7.2f}'.format(data[0]).replace('-', '-$').replace('+', '+$'))
