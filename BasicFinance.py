@@ -1,4 +1,4 @@
-import pytz
+import pytz, sys
 import numpy as np
 from datetime import datetime, timedelta
 from matplotlib.dates import num2date, date2num
@@ -81,37 +81,47 @@ class BasicFinance:
 
 		return offset + cumsums * scale_arr[::-1]
 
-	# Detect buy and sell crossovers of two SMA lists and return signals:
-	def detectCrossovers(self, dates, smanl, smanh, dd):
+	# Detect buy and sell crossovers of two averaged lists and return signals:
+	def detectCrossovers(self, dates, manl, manh, dd):
 		# Create empty data structure:
 		crossovers = []
 
 		# Detect change in sign at every point in the difference of two source lists:
-		for i in np.where(np.diff(np.sign((smanl-smanh))))[0].reshape(-1):
+		for i in np.where(np.diff(np.sign((manl-manh))))[0].reshape(-1):
 			# If prices are the same, not a signal
-			if smanl[i] == smanh[i]: continue
+			if manl[i] == manh[i]: continue
 
 			# Compute slopes for both short term and long term SMA:
-			smanlm = (smanl[i+1]-smanl[i])/(dates[i+1]-dates[i])
-			smanhm = (smanh[i+1]-smanh[i])/(dates[i+1]-dates[i])
+			manlm = (manl[i+1]-manl[i])/(dates[i+1]-dates[i])
+			manhm = (manh[i+1]-manh[i])/(dates[i+1]-dates[i])
 
 			# Compute exact time and value of the crossover:
-			t = (smanh[i]-smanl[i])/(smanlm-smanhm)+dates[i]
-			p = smanlm*(t-dates[i])+smanl[i]
+			t = (manh[i]-manl[i])/(manlm-manhm)+dates[i]
+			p = manlm*(t-dates[i])+manl[i]
 
 			# Append the crossover value to the data structure:
 			if t > date2num(num2date(dates[len(dates)-1])-timedelta(days=dd+1)):
 				# If short term SMA is below long term SMA, signal
 				# to buy (True), otherwise signal to sell (False):
-				crossovers.append((smanl[i] < smanh[i], (t, p)))
+				crossovers.append((manl[i] < manh[i], (t, p)))
 
 		# Return the completed data structure
 		return crossovers
 
 	# Calculate PIP following signals:
 	def calcPIPFS(self, t, p, crossovers, verbose=False):
+
+		tradedelay  = 1
+		crossadjust = []
+
+		for s, (ts, ps) in crossovers:
+			i = np.argmin(abs(t - ts - 1 + tradedelay))
+			if i >= len(t): i = len(t) - 1
+			crossadjust.append((s, (t[i], p[i])))
+
 		bl = None
 		sl = None
+
 		if verbose: print()
 
 		# Buy share on first day of period no matter what:
@@ -119,7 +129,7 @@ class BasicFinance:
 		bl = (t[0], p[0])
 
 		gain = -p[0]
-		for i, (s, (ts, ps)) in enumerate(crossovers):
+		for i, (s, (ts, ps)) in enumerate(crossadjust):
 			# If first signal is buy, ignore, otherwise sell:
 			if i == 0:
 				if s:
@@ -150,7 +160,7 @@ class BasicFinance:
 
 		if verbose: print('{0:+.2f}'.format(gain))
 
-		return (gain, 100*gain/p[0])
+		return ((gain, 100*gain/p[0]), crossadjust)
 
 	# Calculate PIP when fully invested:
 	def calcPIPFI(self, t, p):

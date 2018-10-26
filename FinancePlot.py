@@ -113,11 +113,11 @@ class FinancePlot:
 		else: print('');
 
 		# Print comparison between staying fully invested and following signals:
-		if "fund" in fund.lower():
-			print(fund + ' performance:')
-		else:
-			print(fund + ' fund performance:')
-		for desc, data in [('Invested', self.bf.calcPIPFI(dates, price)), ('Signaled', self.bf.calcPIPFS(dates, price, crossovers)), ('Variance', np.subtract(self.bf.calcPIPFS(dates, price, crossovers), self.bf.calcPIPFI(dates, price)))]:
+		if "fund" in fund.lower(): print(fund +      ' performance:')
+		else:                      print(fund + ' fund performance:')
+		invested = self.bf.calcPIPFI(dates, price)
+		signaled, crossadjust = self.bf.calcPIPFS(dates, price, crossovers)
+		for desc, data in [('Invested', invested), ('Signaled', signaled), ('Variance', np.subtract(signaled, invested))]:
 			sys.stdout.write('  ' + desc + ' ')
 			sys.stdout.write('{0:+7.2f}'.format(data[0]).replace('-', '-$').replace('+', '+$'))
 			print('{0:+7.1f}%'.format(data[1]))
@@ -129,8 +129,10 @@ class FinancePlot:
 
 		# Plot buy and sell crossover signals:
 		if crossovers:
-			ax.plot_date(*zip(*[s[1] for s in crossovers if     s[0]]), color='g', label="Buy Signals")
-			ax.plot_date(*zip(*[s[1] for s in crossovers if not s[0]]), color='r', label="Sell Signals")
+			ax.plot_date(*zip(*[s[1] for s in crossovers  if     s[0]]), color='g', marker='o', label="Buy Signaled")
+			ax.plot_date(*zip(*[s[1] for s in crossadjust if     s[0]]), color='g', marker='x', label="Buy Settled")
+			ax.plot_date(*zip(*[s[1] for s in crossovers  if not s[0]]), color='r', marker='o', label="Sell Signaled")
+			ax.plot_date(*zip(*[s[1] for s in crossadjust if not s[0]]), color='r', marker='x', label="Sell Settled")
 
 		# Define plot legend and add gridlines:
 		fp.definePlotLegend()
