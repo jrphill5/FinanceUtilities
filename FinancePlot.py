@@ -129,10 +129,10 @@ class FinancePlot:
 
 		# Plot buy and sell crossover signals:
 		if crossovers:
-			ax.plot_date(*zip(*[s[1] for s in crossovers  if     s[0]]), color='g', marker='o', label="Buy Signaled")
-			ax.plot_date(*zip(*[s[1] for s in crossadjust if     s[0]]), color='g', marker='x', label="Buy Settled")
-			ax.plot_date(*zip(*[s[1] for s in crossovers  if not s[0]]), color='r', marker='o', label="Sell Signaled")
-			ax.plot_date(*zip(*[s[1] for s in crossadjust if not s[0]]), color='r', marker='x', label="Sell Settled")
+			ax.plot_date(*zip(*[s[1] for s in crossovers  if     s[0]]), mew=1, color='g', mec='k', marker='o', markersize=6.0, label="Buy Signaled")
+			ax.plot_date(*zip(*[s[1] for s in crossadjust if     s[0]]), mew=1, color='g', mec='k', marker='X', markersize=7.5, label="Buy Settled")
+			ax.plot_date(*zip(*[s[1] for s in crossovers  if not s[0]]), mew=1, color='r', mec='k', marker='o', markersize=6.0, label="Sell Signaled")
+			ax.plot_date(*zip(*[s[1] for s in crossadjust if not s[0]]), mew=1, color='r', mec='k', marker='X', markersize=7.5, label="Sell Settled")
 
 		# Define plot legend and add gridlines:
 		fp.definePlotLegend()

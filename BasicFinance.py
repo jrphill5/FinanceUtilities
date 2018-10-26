@@ -115,7 +115,7 @@ class BasicFinance:
 		crossadjust = []
 
 		for s, (ts, ps) in crossovers:
-			i = np.argmin(abs(t - ts - 1 + tradedelay))
+			i = np.argmin(abs(np.ceil(t - ts))) + 1 + tradedelay
 			if i >= len(t): i = len(t) - 1
 			crossadjust.append((s, (t[i], p[i])))
 
