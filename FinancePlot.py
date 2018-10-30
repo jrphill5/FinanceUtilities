@@ -113,8 +113,8 @@ class FinancePlot:
 		if "fund" in fund.lower(): print(fund +      ' previous day:')
 		else:                      print(fund + ' fund previous day:')
 		sys.stdout.write('  ${0:.2f}'.format(price[-1]))
-		sys.stdout.write('{0:+7.2f}'.format(price[-1] - price[-2]).replace('-', '-$').replace('+', '+$'))
-		print('{0:+7.2f}%'.format((price[-1] - price[-2])/price[-2]))
+		sys.stdout.write('  {0:+.2f}'.format(price[-1] - price[-2]).replace('-', '-$').replace('+', '+$'))
+		print('  {0:+.2f}%'.format(100*(price[-1] - price[-2])/price[-2]))
 
 		# Detect and print exact crossover signals:
 		crossovers = self.bf.detectCrossovers(dates, nl, nh, self.dd)
