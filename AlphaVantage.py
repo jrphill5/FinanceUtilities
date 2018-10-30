@@ -71,50 +71,49 @@ class AlphaVantage:
 			# Read in JSON from response:
 			raw  = resp.json()
 
-			# Define date and time formats used by Alpha Vantage
-			datefmt = '%Y-%m-%d'; datelen = 10
-			timefmt = '%H:%M:%S'; timelen =  8
+			if 'Error Message' not in raw:
+				# Define date and time formats used by Alpha Vantage
+				datefmt = '%Y-%m-%d'; datelen = 10
+				timefmt = '%H:%M:%S'; timelen =  8
 
-			# Store header and parse last updated date and time:
-			head = { 'Info':     raw['Meta Data']['1. Information'],
-			         'Symbol':   raw['Meta Data']['2. Symbol'],
-					 'Updated':  raw['Meta Data']['3. Last Refreshed'],
-					 'Output':   raw['Meta Data']['4. Output Size'],
-					 'TimeZone': raw['Meta Data']['5. Time Zone']       }
-			if len(head['Updated']) == datelen:
-				head['Updated'] = datetime.strptime(head['Updated'], datefmt)
-			elif len(head['Updated']) == datelen+timelen+1:
-				head['Updated'] = datetime.strptime(head['Updated'], datefmt+' '+timefmt)
-			else:
-				head['Updated'] = datetime(1970, 1, 1)
+				# Store header and parse last updated date and time:
+				head = { 'Info':     raw['Meta Data']['1. Information'],
+				         'Symbol':   raw['Meta Data']['2. Symbol'],
+						 'Updated':  raw['Meta Data']['3. Last Refreshed'],
+						 'Output':   raw['Meta Data']['4. Output Size'],
+						 'TimeZone': raw['Meta Data']['5. Time Zone']       }
+				if len(head['Updated']) == datelen:
+					head['Updated'] = datetime.strptime(head['Updated'], datefmt)
+				elif len(head['Updated']) == datelen+timelen+1:
+					head['Updated'] = datetime.strptime(head['Updated'], datefmt+' '+timefmt)
+				else:
+					head['Updated'] = datetime(1970, 1, 1)
 
-			# Generate dict of lists for data:
-			data = { 'Date':     [], 'Open':     [], 'High':     [],
-			         'Low':      [], 'Close':    [], 'Volume':   []  }
+				# Generate dict of lists for data:
+				data = { 'Date':     [], 'Open':     [], 'High':     [],
+				         'Low':      [], 'Close':    [], 'Volume':   []  }
 
-			# Populate data structure with information in JSON response:
-			for k, v in sorted(raw['Time Series (Daily)'].items()):
-				date = datetime.strptime(k, datefmt)
-				if date >= self.dtp and date <= self.dte:
-					data['Date'].append(  date)
-					data['Open'].append(  float(v['1. open']))
-					data['High'].append(  float(v['2. high']))
-					data['Low'].append(   float(v['3. low']))
-					data['Close'].append( float(v['4. close']))
-					data['Volume'].append(int(  v['5. volume']))
+				# Populate data structure with information in JSON response:
+				for k, v in sorted(raw['Time Series (Daily)'].items()):
+					date = datetime.strptime(k, datefmt)
+					if date >= self.dtp and date <= self.dte:
+						data['Date'].append(  date)
+						data['Open'].append(  float(v['1. open']))
+						data['High'].append(  float(v['2. high']))
+						data['Low'].append(   float(v['3. low']))
+						data['Close'].append( float(v['4. close']))
+						data['Volume'].append(int(  v['5. volume']))
 
-			# Store this data in the object:
-			self.head = head
-			self.data = data
+				# Store this data in the object:
+				self.head = head
+				self.data = data
 
-			# Insert information into database:
-			#self.fd.insertAll(self.symbol, self.data['Date'], self.data['Close'])
-		
-		else:
-			self.data = None
+				# Insert information into database:
+				#self.fd.insertAll(self.symbol, self.data['Date'], self.data['Close'])
+			else: self.data = None
+		else: self.data = None
 
 	def printLatestCrossover(self, fund, crossovers):
-		print()
 		print(fund + ' fund latest crossover:')
 		if crossovers:
 			s, (t, p) = crossovers[-1]

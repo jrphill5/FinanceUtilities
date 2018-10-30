@@ -71,7 +71,6 @@ class FinancePlot:
 		self.ax.set_title(title)
 
 	def plotSignals(self, finObj, t, p, img, fund, avgtype, updateTime=None):
-
 		avgtypes = ['SMA', 'EWMA']
 		if avgtype not in avgtypes: avgtype = 'SMA'
 
@@ -108,6 +107,14 @@ class FinancePlot:
 		fp.genPlotTitle(fund, updateTime)
 		fig = fp.getFig()
 		ax = fp.getAx()
+
+		# Print information about previous trading day:
+		print()
+		if "fund" in fund.lower(): print(fund +      ' previous day:')
+		else:                      print(fund + ' fund previous day:')
+		sys.stdout.write('  ${0:.2f}'.format(price[-1]))
+		sys.stdout.write('{0:+7.2f}'.format(price[-1] - price[-2]).replace('-', '-$').replace('+', '+$'))
+		print('{0:+7.2f}%'.format((price[-1] - price[-2])/price[-2]))
 
 		# Detect and print exact crossover signals:
 		crossovers = self.bf.detectCrossovers(dates, nl, nh, self.dd)

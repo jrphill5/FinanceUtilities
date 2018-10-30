@@ -87,7 +87,6 @@ class ThriftSavingsPlan:
 			self.data = None
 
 	def printLatestCrossover(self, fund, crossovers):
-		print()
 		print(fund + ' latest crossover:')
 		if crossovers:
 			s, (t, p) = crossovers[-1]
