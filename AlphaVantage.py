@@ -120,11 +120,9 @@ class AlphaVantage:
 			if s: sys.stdout.write('  B ')
 			else: sys.stdout.write('  S ')
 			dtc = self.bf.getNextTradingDay(num2date(t))
-			sys.stdout.write(dtc.strftime('%m/%d/%Y ('))
+			sys.stdout.write(self.bf.formatDate(dtc) + ' (')
 			days = len(self.bf.getTradingDays(dtc, datetime.now().date()-timedelta(days=1)).tolist())
-			sys.stdout.write(str(days))
-			sys.stdout.write('|')
-			sys.stdout.write(str(self.bf.daysSince(dtc)))
+			sys.stdout.write('%3d|%-3d' % (days, self.bf.daysSince(dtc)))
 			sys.stdout.write(' days ago) @ $')
 			sys.stdout.write('{0:.2f}'.format(p))
 			return days == 0

@@ -108,13 +108,13 @@ class FinancePlot:
 		fig = fp.getFig()
 		ax = fp.getAx()
 
-		# Print information about previous trading day:
+		# Avoid duplication of word fund in name:
+		if "fund" in fund.lower(): fundname = fund.capitalize()
+		else:                      fundname = fund + " fund"
+
+		# Print current price of fund:
 		print()
-		if "fund" in fund.lower(): print(fund +      ' previous day:')
-		else:                      print(fund + ' fund previous day:')
-		sys.stdout.write('  ${0:.2f}'.format(price[-1]))
-		sys.stdout.write('  {0:+.2f}'.format(price[-1] - price[-2]).replace('-', '-$').replace('+', '+$'))
-		print('  {0:+.2f}%'.format(100*(price[-1] - price[-2])/price[-2]))
+		print('{0:36s}'.format(fundname + ' price as of %s:' % self.bf.formatDate(num2date(dates[-1]))) + '${0:.2f}'.format(price[-1]))
 
 		# Detect and print exact crossover signals:
 		crossovers = self.bf.detectCrossovers(dates, nl, nh, self.dd)
@@ -122,15 +122,22 @@ class FinancePlot:
 			print(' !!!')
 		else: print('');
 
+		# Print information about recent performance:
+		print(fundname + ' recent performance:')
+		for days in [1, 5, 20, 60]:
+			sys.stdout.write('  {0:02d} day:'.format(days))
+			sys.stdout.write('  {0:+9.2f}'.format(price[-1 - days]).replace('+', '$'))
+			sys.stdout.write('  {0:+7.2f}'.format(price[-1] - price[-1 - days]).replace('-', '-$').replace('+', '+$'))
+			print('  {0:+7.2f}%'.format(100*(price[-1] - price[-1 - days])/price[-1 - days]))
+
 		# Print comparison between staying fully invested and following signals:
-		if "fund" in fund.lower(): print(fund +      ' performance:')
-		else:                      print(fund + ' fund performance:')
+		print(fundname + ' full performance:')
 		invested = self.bf.calcPIPFI(dates, price)
 		signaled, crossadjust = self.bf.calcPIPFS(dates, price, crossovers)
 		for desc, data in [('Invested', invested), ('Signaled', signaled), ('Variance', np.subtract(signaled, invested))]:
-			sys.stdout.write('  ' + desc + ' ')
+			sys.stdout.write('  ' + desc + ':           ')
 			sys.stdout.write('{0:+7.2f}'.format(data[0]).replace('-', '-$').replace('+', '+$'))
-			print('{0:+7.1f}%'.format(data[1]))
+			print('  {0:+7.2f}%'.format(data[1]))
 	
 		# Plot price and short term and long term moving averages:
 		ax.plot_date(dates, price, '-', label="Close Values")
