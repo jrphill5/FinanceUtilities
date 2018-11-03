@@ -133,7 +133,7 @@ class FinancePlot:
 		# Print comparison between staying fully invested and following signals:
 		print(fundname + ' full performance:')
 		invested = self.bf.calcPIPFI(dates, price)
-		signaled, crossadjust = self.bf.calcPIPFS(dates, price, crossovers)
+		signaled, crossadjust = self.bf.calcPIPFS(dates, price, crossovers, openend=finObj.openEnd)
 		for desc, data in [('Invested', invested), ('Signaled', signaled), ('Variance', np.subtract(signaled, invested))]:
 			sys.stdout.write('  ' + desc + ':           ')
 			sys.stdout.write('{0:+7.2f}'.format(data[0]).replace('-', '-$').replace('+', '+$'))

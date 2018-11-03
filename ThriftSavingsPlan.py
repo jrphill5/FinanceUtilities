@@ -18,6 +18,8 @@ class ThriftSavingsPlan:
 		self.nl = nl
 		self.nh = nh
 
+		self.openEnd = True
+
 		# Create datetime object for the actual start time accounting for loss due to moving average:
 		self.dd = (self.dte-self.dts).days
 		self.dtp = self.dte - timedelta(days=self.dd+7.0/5.0*self.nh+self.dd/30.0*3.0) # Take weekends and holidays into account

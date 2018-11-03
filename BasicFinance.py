@@ -109,10 +109,13 @@ class BasicFinance:
 		return crossovers
 
 	# Calculate PIP following signals:
-	def calcPIPFS(self, t, p, crossovers, verbose=False):
+	def calcPIPFS(self, t, p, crossovers, verbose=False, openend=True):
 
-		tradedelay  = 1
 		crossadjust = []
+		if openend: tradedelay = 1
+		else:       tradedelay = 0
+
+		print("  (assumes %d day trade delay)" % tradedelay)
 
 		for s, (ts, ps) in crossovers:
 			i = np.argmin(abs(np.ceil(t - ts))) + 1 + tradedelay
