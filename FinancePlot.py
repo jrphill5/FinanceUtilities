@@ -126,9 +126,13 @@ class FinancePlot:
 		print(fundname + ' recent performance:')
 		for days in [1, 5, 20, 60]:
 			sys.stdout.write('  {0:02d} day:'.format(days))
-			sys.stdout.write('  {0:+9.2f}'.format(price[-1 - days]).replace('+', '$'))
-			sys.stdout.write('  {0:+7.2f}'.format(price[-1] - price[-1 - days]).replace('-', '-$').replace('+', '+$'))
-			print('  {0:+7.2f}%'.format(100*(price[-1] - price[-1 - days])/price[-1 - days]))
+			try: sys.stdout.write('  {0:+9.2f}'.format(price[-1 - days]).replace('+', '$'))
+			except IndexError: sys.stdout.write('  {0:>9s}'.format('+$X.XX'))
+			try: sys.stdout.write('  {0:+7.2f}'.format(price[-1] - price[-1 - days]).replace('-', '-$').replace('+', '+$'))
+			except IndexError: sys.stdout.write('  {0:>8s}'.format('+$X.XX'))
+			try: sys.stdout.write('  {0:+7.2f}%'.format(100*(price[-1] - price[-1 - days])/price[-1 - days]))
+			except IndexError: sys.stdout.write('  {0:>7s}%'.format('+X.XX'))
+			print()
 
 		# Print comparison between staying fully invested and following signals:
 		print(fundname + ' full performance:')
@@ -140,16 +144,23 @@ class FinancePlot:
 			print('  {0:+7.2f}%'.format(data[1]))
 	
 		# Plot price and short term and long term moving averages:
-		ax.plot_date(dates, price, '-', label="Close Values")
-		ax.plot_date(dates, nl,    '-', label="%d Day %s" % (finObj.nl, avgtype))
-		ax.plot_date(dates, nh,    '-', label="%d Day %s" % (finObj.nh, avgtype))
+		try: ax.plot_date(dates, price, '-', label="Close Values")
+		except (ValueError, TypeError): print("[WARN] Exception during close value plotting")
+		try: ax.plot_date(dates, nl,	'-', label="%d Day %s" % (finObj.nl, avgtype))
+		except (ValueError, TypeError): print("[WARN] Exception during short term average plotting")
+		try: ax.plot_date(dates, nh,	'-', label="%d Day %s" % (finObj.nh, avgtype))
+		except (ValueError, TypeError): print("[WARN] Exception during long term average plotting")
 
 		# Plot buy and sell crossover signals:
 		if crossovers:
-			ax.plot_date(*zip(*[s[1] for s in crossovers  if     s[0]]), mew=1, color='g', mec='k', marker='o', markersize=7.0, label="Buy Signaled")
-			ax.plot_date(*zip(*[s[1] for s in crossadjust if     s[0]]), mew=1, color='g', mec='k', marker='X', markersize=8.5, label="Buy Settled")
-			ax.plot_date(*zip(*[s[1] for s in crossovers  if not s[0]]), mew=1, color='r', mec='k', marker='o', markersize=7.0, label="Sell Signaled")
-			ax.plot_date(*zip(*[s[1] for s in crossadjust if not s[0]]), mew=1, color='r', mec='k', marker='X', markersize=8.5, label="Sell Settled")
+			try: ax.plot_date(*zip(*[s[1] for s in crossovers  if     s[0]]), mew=1, color='g', mec='k', marker='o', markersize=7.0, label="Buy Signaled")
+			except (ValueError, TypeError): print("[WARN] Exception during buy signal plotting")
+			try: ax.plot_date(*zip(*[s[1] for s in crossadjust if     s[0]]), mew=1, color='g', mec='k', marker='X', markersize=8.5, label="Buy Settled")
+			except (ValueError, TypeError): print("[WARN] Exception during buy settle plotting")
+			try: ax.plot_date(*zip(*[s[1] for s in crossovers  if not s[0]]), mew=1, color='r', mec='k', marker='o', markersize=7.0, label="Sell Signaled")
+			except (ValueError, TypeError): print("[WARN] Exception during sell signal plotting")
+			try: ax.plot_date(*zip(*[s[1] for s in crossadjust if not s[0]]), mew=1, color='r', mec='k', marker='X', markersize=8.5, label="Sell Settled")
+			except (ValueError, TypeError): print("[WARN] Exception during sell settle plotting")
 
 		# Define plot legend and add gridlines:
 		fp.definePlotLegend()
