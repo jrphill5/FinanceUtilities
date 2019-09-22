@@ -25,18 +25,18 @@ class TSPTradingCalendar(AbstractHolidayCalendar):
 
 class BasicFinance:
 	def __init__(self):
-		pass
+		pd.plotting.register_matplotlib_converters()
 
 	def getFederalTradingDays(self, dts, dte):
 		inst = CustomBusinessDay(calendar=TSPTradingCalendar())
-		return pd.DatetimeIndex(start=dts, end=dte, freq=inst)
+		return pd.date_range(start=dts, end=dte, freq=inst)
 
 	def getNextFederalTradingDay(self, dts):
 		return (self.getFederalTradingDays(dts.date()+timedelta(days=1), (dts+timedelta(days=7)).date()).tolist()[0]).date()
 
 	def getTradingDays(self, dts, dte):
 		inst = CustomBusinessDay(calendar=USTradingCalendar())
-		return pd.DatetimeIndex(start=dts, end=dte, freq=inst)
+		return pd.date_range(start=dts, end=dte, freq=inst)
 
 	def getNextTradingDay(self, dts):
 		return (self.getTradingDays(dts.date()+timedelta(days=1), (dts+timedelta(days=7)).date()).tolist()[0]).date()
