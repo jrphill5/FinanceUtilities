@@ -42,7 +42,8 @@ if args.type == 'av':
 	send = len(bf.getTradingDays(datetime.now(), datetime.now()).tolist()) > 0
 
 if not send:
-	exit('Not a market day, not sending report!')
+	print('Not a market day, not sending report!')
+	sys.exit()
 
 if args.signal:
 	msg['Subject'] = name + ' Signal Detected on ' + datetime.now().strftime('%m/%d/%Y')
