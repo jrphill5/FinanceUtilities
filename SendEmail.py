@@ -47,7 +47,7 @@ if not send:
 
 if args.signal:
 	msg['Subject'] = name + ' Signal Detected on ' + datetime.now().strftime('%m/%d/%Y')
-	if args.type == 'tsp':
+	if args.type == 'av':
 		EMAIL_TO = EMAIL_AVSIG
 	else:
 		EMAIL_TO = EMAIL_SIGNAL
