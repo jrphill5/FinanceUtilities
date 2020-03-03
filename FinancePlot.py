@@ -12,6 +12,7 @@ import matplotlib.pyplot as plt
 from matplotlib.dates import date2num, num2date, MonthLocator, DateFormatter
 from matplotlib.ticker import FormatStrFormatter
 from datetime import datetime, timedelta
+from dateutil import tz
 
 import BasicFinance
 
@@ -144,11 +145,11 @@ class FinancePlot:
 			print('  {0:+7.2f}%'.format(data[1]))
 	
 		# Plot price and short term and long term moving averages:
-		try: ax.plot_date(dates, price, '-', label="Close Values")
+		try: ax.step(num2date(dates, tz=tz.tzutc()), price, '-', label="Close Values", where="post")
 		except (ValueError, TypeError): print("[WARN] Exception during close value plotting")
-		try: ax.plot_date(dates, nl,	'-', label="%d Day %s" % (finObj.nl, avgtype))
+		try: ax.step(num2date(dates, tz=tz.tzutc()), nl,    '-', label="%d Day %s" % (finObj.nl, avgtype), where="post")
 		except (ValueError, TypeError): print("[WARN] Exception during short term average plotting")
-		try: ax.plot_date(dates, nh,	'-', label="%d Day %s" % (finObj.nh, avgtype))
+		try: ax.step(num2date(dates, tz=tz.tzutc()), nh,    '-', label="%d Day %s" % (finObj.nh, avgtype), where="post")
 		except (ValueError, TypeError): print("[WARN] Exception during long term average plotting")
 
 		# Plot buy and sell crossover signals:
