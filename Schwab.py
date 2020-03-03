@@ -23,16 +23,31 @@ def remove_trailing_delims(fh, delim=","):
         else:                yield row
 
 def center_string(string, length=80, padchar=" ", space=False):
+    blines = 0
+    alines = 0
+    strings = string.split('\n')
+    for i in range(len(strings)):
+        s = strings.pop(0)
+        if s == '': blines += 1
+        else:
+            string = s
+            for j in range(len(strings)):
+                if strings.pop() == '':
+                    alines += 1
+                else: break
+        if len(strings) == 0: break
     if space: string = " %s " % string
     strlen = len(string)
     padlen = length - strlen
     outstr = ""
+    for i in range(blines-1):        outstr += '\n'
     for i in range(padlen//2):       outstr += padchar
     outstr += string
     if padlen % 2 == 0:
         for i in range(padlen//2):   outstr += padchar
     else:
         for i in range(padlen//2+1): outstr += padchar
+    for i in range(alines-1):        outstr += '\n'
     return outstr
 
 def print_csvdata(csvdata, csvinfo=None, csvhead=None, csvtail=None):
@@ -49,13 +64,13 @@ def print_csvdata(csvdata, csvinfo=None, csvhead=None, csvtail=None):
         print(tailfmt % tuple(csvtail))
         print(center_string("", 150, "=", False))
 
-def parse_contribs(csvdata, csvinfo=None, initvalu=0.0, verbose=False):
+def parse_contribs(csvdata, csvinfo=None, initvalu=0.0):
     conttotl = initvalu
     contdate = []
     contvalu = []
-    if verbose:
-        print(center_string("Contributions", 35, "=", True))
-        print("%-10s %11s %12s" % ("Date", "Transfer", "Balance"))
+    print()
+    print(center_string("Contributions", 35, "=", True))
+    print("%-10s %11s %12s" % ("Date", "Transfer", "Balance"))
     for i, row in enumerate(reversed(csvdata)):
         if i == 0:
             contdate.append(mpl.dates.date2num(datetime.strptime(row[0], "%m/%d/%Y")))
@@ -64,17 +79,16 @@ def parse_contribs(csvdata, csvinfo=None, initvalu=0.0, verbose=False):
             conttotl += row[8]
             contdate.append(mpl.dates.date2num(datetime.strptime(row[0], "%m/%d/%Y")))
             contvalu.append(conttotl)
-            if verbose: print("%-10s %+11.2f %12.2f" % (row[0], row[8], conttotl))
+            print("%-10s %+11.2f %12.2f" % (row[0], row[8], conttotl))
     if csvinfo is not None:
         contdate.append(mpl.dates.date2num(datetime.strptime(" ".join(csvinfo.split()[-3:-1]), "%m/%d/%Y %H:%M:%S")))
         contvalu.append(conttotl)
-    if verbose:
-        print(center_string("", 35, "=", False))
-        print(center_string("Total Contributions: $%.2f" % conttotl, 35, " "))
-        print(center_string("", 35, "=", False))
+    print(center_string("", 35, "=", False))
+    print(center_string("Total Contributions: $%.2f" % conttotl, 35, " "))
+    print(center_string("", 35, "=", False))
     return contdate, contvalu, conttotl
 
-def parse_positions(csvdata, verbose=False):
+def parse_positions(csvdata):
     positions = {}
     for row in csvdata:
         if row[3]:
@@ -111,11 +125,12 @@ with open(datafil) as fh:
     csvtail = csvdata.pop()
 
 print_csvdata(csvdata, csvinfo, csvhead, csvtail)
-contdate, contvalu, conttotl = parse_contribs(csvdata, csvinfo, verbose=True)
+contdate, contvalu, conttotl = parse_contribs(csvdata, csvinfo)
 
 positions = parse_positions(csvdata)
 shareplot = {}
 for symbol in sorted(positions.keys()):
+    print()
     shareplot[symbol] = {'t': [], 'v': []}
     #print_csvdata(positions[symbol], "%s %s" % (symbol, csvinfo), csvhead)
     share = 0.0
@@ -136,24 +151,35 @@ for symbol in sorted(positions.keys()):
     print(datafmt % ("Total", "", 0.0, 0.0, share, value))
     print(center_string("", 93, "=", False))
 
-    av = AlphaVantage(symbol, dts=datetime.strptime(positions[symbol][-1][0], "%m/%d/%Y"), dte=datetime.strptime(" ".join(csvinfo.split()[-3:-1]), "%m/%d/%Y %H:%M:%S"))
-    avdata = av.getData()
+    if ' ' in symbol:
+        avdata = None
+    else:
+        try:
+            av = AlphaVantage(symbol, dts=datetime.strptime(positions[symbol][-1][0], "%m/%d/%Y"), dte=datetime.strptime(" ".join(csvinfo.split()[-3:-1]), "%m/%d/%Y %H:%M:%S"))
+            avdata = av.getData()
+        except KeyError:
+            avdata = None
+
     if avdata is None:
-        print("Data for %s could not be found!" % symbol)
-        continue
+        print(center_string("AlphaVantage Data For %s Could Not Be Found!" % symbol, 93, "=", True))
 
     T = []
     V = []
 
-    if len(avdata['Date']) == 0:
-        print("Assuming %s share value is $1.00" % symbol)
+    if avdata is None or len(avdata['Date']) == 0:
+        print(center_string("Assuming %s Share Value Is $1.00" % symbol, 93, "=", True))
         dts = datetime.strptime(positions[symbol][-1][0], "%m/%d/%Y")
         dte = datetime.strptime(" ".join(csvinfo.split()[-3:-2]), "%m/%d/%Y")
         MT  = [dts + timedelta(days=x) for x in range(0, (dte-dts+timedelta(days=1)).days)]
         MV  = [1.0 for x in range(0, (dte-dts+timedelta(days=1)).days)]
+        avdata = None
     else:
         MT  = avdata['Date']
         MV  = avdata['Close']
+
+    if avdata is not None:
+        print(center_string("AlphaVantage Update Time: %s" % MT[-1].strftime("%Y/%m/%d"), 93, "=", True))
+    print(center_string("", 93, "=", False))
     
     for j, (mt, mv) in enumerate(zip(mpl.dates.date2num(MT), MV)):
         for i, pt in enumerate(shareplot[symbol]['t']):
