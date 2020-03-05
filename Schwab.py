@@ -7,7 +7,7 @@ from dateutil import tz
 
 from AlphaVantage import AlphaVantage
 
-avenable = False
+avenable = True
 
 delim = ","
 
@@ -177,9 +177,41 @@ def add_series(T1, V1, T2, V2, scale=1, zl=True, zr=False, verbose=False):
 
     return remove_duplicates(TS, VS)
 
-# TODO: implement this
 def remove_duplicates(T, V):
-    return T, V
+    Tnew = []; Vnew = []
+
+    tp = 0; vp = 0
+    for i, (t, v) in enumerate(zip(T, V)):
+        v = round(v, 2)
+        if i != len(T)-1:
+            if vp != v:
+                Tnew.append(t)
+                Vnew.append(v)
+        else:
+            Tnew.append(t)
+            Vnew.append(v)
+        tp = t; vp = v
+
+    T = Tnew; V = Vnew
+    data = {}
+
+    for i in range(len(T)):
+        if T[i] not in data: data[T[i]] = []
+        data[T[i]].append(V[i])
+
+    T = sorted(data)
+    Tnew = []; Vnew = []
+    for i in range(len(T)):
+        if len(data[T[i]]) > 1:
+            Vmin = min(data[T[i]])
+            Vmax = max(data[T[i]])
+            diff = [abs(Vmin - np.mean(data[T[i-1]])), abs(Vmax - np.mean(data[T[i-1]])), abs(Vmin - np.mean(data[T[i+1]])), abs(Vmax - np.mean(data[T[i+1]]))]
+            if   np.argmin(diff) == 0 or np.argmin(diff) == 1: data[T[i]] = data[T[i-1]]
+            elif np.argmin(diff) == 2 or np.argmin(diff) == 3: data[T[i]] = data[T[i+1]]
+        Tnew.append(T[i])
+        Vnew.append(data[T[i]][0])
+
+    return Tnew, Vnew
 
 trnfile = None
 posfile = None
