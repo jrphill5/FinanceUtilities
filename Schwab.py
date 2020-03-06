@@ -107,11 +107,15 @@ def parse_positions(csvdata):
     return positions
 
 def print_file_info(trnfile, posfile, balfile):
-    print(center_string("File Information", max(len(trnfile), len(posfile), len(balfile))+15, "=", True))
+    lentrnfile = 0; lenposfile = 0; lenbalfile = 0
+    if trnfile is not None: lentrnfile = len(trnfile)
+    if posfile is not None: lenposfile = len(posfile)
+    if balfile is not None: lenbalfile = len(balfile)
+    print(center_string("File Information", max(lentrnfile, lenposfile, lenbalfile)+15, "=", True))
     print("Transactions : %s" % trnfile)
     print("Positions    : %s" % posfile)
     print("Balances     : %s" % balfile)
-    print(center_string("", max(len(trnfile), len(posfile), len(balfile))+15, "=", False))
+    print(center_string("", max(lentrnfile, lenposfile, lenbalfile)+15, "=", False))
 
 def add_series(T1, V1, T2, V2, scale=1, zl=True, zr=False, verbose=False):
 
