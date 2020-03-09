@@ -7,12 +7,6 @@ from dateutil import tz
 
 from AlphaVantage import AlphaVantage
 
-avenable = True
-
-delim = ","
-
-datadir = os.path.join("Data", "Schwab")
-
 def sign(val):
     if   val < 0.0: return -1
     elif val > 0.0: return +1
@@ -217,226 +211,234 @@ def remove_duplicates(T, V):
 
     return Tnew, Vnew
 
-trnfile = None
-posfile = None
-balfile = None
+if __name__ == "__main__":
 
-try: trnfile = sorted(glob.glob(os.path.join(datadir, "*Transactions*")), reverse=True)[0]
-except IndexError: pass
+    avenable = True
 
-try: posfile = sorted(glob.glob(os.path.join(datadir, "*Positions*")), reverse=True)[0]
-except IndexError: pass
+    delim = ","
 
-try: balfile = sorted(glob.glob(os.path.join(datadir, "*Balances*")), reverse=True)[0]
-except IndexError: pass
+    datadir = os.path.join("Data", "Schwab")
 
-print_file_info(trnfile, posfile, balfile)
+    trnfile = None
+    posfile = None
+    balfile = None
 
-with open(trnfile) as fh:
-    csvread = csv.reader(remove_trailing_delims(fh, delim), delimiter=delim, quotechar='"')
-    csvdata = []
-    for i, row in enumerate(csvread):
-        if i == 0:
-            csvinfo = ','.join([x.replace("  ", " ") for x in row])
-            continue
-        elif i == 1:
-            row.insert(1, "Effective")
-            csvhead = row
-            continue
-        elif len(row) == 8:
-            dateinfo = row[0].split(" as of ")
-            row[0] = dateinfo[0]
-            if len(dateinfo) == 1: row.insert(1, "")
-            else:                  row.insert(1, dateinfo[1])
-            for i in range(5, 9, 1):
-                try:               row[i] = float(row[i].replace('$', ''))
-                except ValueError: row[i] = 0.0
-        else:
-            print("Warning on row %d of input file!" % i)
-            continue
-        csvdata.append(row)
-    csvtail = csvdata.pop()
+    try: trnfile = sorted(glob.glob(os.path.join(datadir, "*Transactions*")), reverse=True)[0]
+    except IndexError: pass
 
-#print_csvdata(csvdata, csvinfo, csvhead, csvtail)
-contdate, contvalu, conttotl = parse_contribs(csvdata, csvinfo)
+    try: posfile = sorted(glob.glob(os.path.join(datadir, "*Positions*")), reverse=True)[0]
+    except IndexError: pass
 
-TS = []; VS = []
-positions = parse_positions(csvdata)
-shareplot = {}
-basisplot = {}
-valueplot = {}
-costbasis = {}
-for symbol in sorted(positions.keys()):
-    print()
-    shareplot[symbol] = {'t': [], 'v': []}
-    basisplot[symbol] = {'t': [], 'v': []}
-    valueplot[symbol] = {'t': [], 'v': []}
-    #print_csvdata(positions[symbol], "%s %s" % (symbol, csvinfo), csvhead)
-    share = 0.0
-    basis = 0.0
-    value = 0.0
-    headfmt = "O %-11s %-29s %12s %12s %12s %12s %12s"
-    datafmt = "%1s %-11s %-29s %12.3f %+12.2f %12.3f %+12.2f %+12.2f"
-    if symbol == 'Sweep': print(center_string("%s"     %  "Bank Sweep"                    , 108, "=", True))
-    else:                 print(center_string("%s: %s" % (symbol, positions[symbol][0][4]), 108, "=", True))
-    print(headfmt % (csvhead[0], csvhead[2], csvhead[5], csvhead[8], "Shares", "Basis", "Value"))
-    for pos in reversed(positions[symbol]):
-        share += -sign(pos[8])*pos[5]
-        value += pos[8]
-        if pos[2] not in ["Reinvest Dividend", "Cash Dividend", "Long Term Cap Gain Reinvest", "Short Term Cap Gain Reinvest", "Security Transfer", "Bank Interest"]:
-            basis += pos[8]
-            warn   = " "
-        else:
-            warn   = "*"
-        shareplot[symbol]['t'].append(mpl.dates.date2num(datetime.strptime(pos[0], "%m/%d/%Y")))
-        basisplot[symbol]['t'].append(mpl.dates.date2num(datetime.strptime(pos[0], "%m/%d/%Y")))
-        valueplot[symbol]['t'].append(mpl.dates.date2num(datetime.strptime(pos[0], "%m/%d/%Y")))
+    try: balfile = sorted(glob.glob(os.path.join(datadir, "*Balances*")), reverse=True)[0]
+    except IndexError: pass
+
+    print_file_info(trnfile, posfile, balfile)
+
+    with open(trnfile) as fh:
+        csvread = csv.reader(remove_trailing_delims(fh, delim), delimiter=delim, quotechar='"')
+        csvdata = []
+        for i, row in enumerate(csvread):
+            if i == 0:
+                csvinfo = ','.join([x.replace("  ", " ") for x in row])
+                continue
+            elif i == 1:
+                row.insert(1, "Effective")
+                csvhead = row
+                continue
+            elif len(row) == 8:
+                dateinfo = row[0].split(" as of ")
+                row[0] = dateinfo[0]
+                if len(dateinfo) == 1: row.insert(1, "")
+                else:                  row.insert(1, dateinfo[1])
+                for i in range(5, 9, 1):
+                    try:               row[i] = float(row[i].replace('$', ''))
+                    except ValueError: row[i] = 0.0
+            else:
+                print("Warning on row %d of input file!" % i)
+                continue
+            csvdata.append(row)
+        csvtail = csvdata.pop()
+
+    #print_csvdata(csvdata, csvinfo, csvhead, csvtail)
+    contdate, contvalu, conttotl = parse_contribs(csvdata, csvinfo)
+
+    TS = []; VS = []
+    positions = parse_positions(csvdata)
+    shareplot = {}
+    basisplot = {}
+    valueplot = {}
+    costbasis = {}
+    for symbol in sorted(positions.keys()):
+        print()
+        shareplot[symbol] = {'t': [], 'v': []}
+        basisplot[symbol] = {'t': [], 'v': []}
+        valueplot[symbol] = {'t': [], 'v': []}
+        #print_csvdata(positions[symbol], "%s %s" % (symbol, csvinfo), csvhead)
+        share = 0.0
+        basis = 0.0
+        value = 0.0
+        headfmt = "O %-11s %-29s %12s %12s %12s %12s %12s"
+        datafmt = "%1s %-11s %-29s %12.3f %+12.2f %12.3f %+12.2f %+12.2f"
+        if symbol == 'Sweep': print(center_string("%s"     %  "Bank Sweep"                    , 108, "=", True))
+        else:                 print(center_string("%s: %s" % (symbol, positions[symbol][0][4]), 108, "=", True))
+        print(headfmt % (csvhead[0], csvhead[2], csvhead[5], csvhead[8], "Shares", "Basis", "Value"))
+        for pos in reversed(positions[symbol]):
+            share += -sign(pos[8])*pos[5]
+            value += pos[8]
+            if pos[2] not in ["Reinvest Dividend", "Cash Dividend", "Long Term Cap Gain Reinvest", "Short Term Cap Gain Reinvest", "Security Transfer", "Bank Interest"]:
+                basis += pos[8]
+                warn   = " "
+            else:
+                warn   = "*"
+            shareplot[symbol]['t'].append(mpl.dates.date2num(datetime.strptime(pos[0], "%m/%d/%Y")))
+            basisplot[symbol]['t'].append(mpl.dates.date2num(datetime.strptime(pos[0], "%m/%d/%Y")))
+            valueplot[symbol]['t'].append(mpl.dates.date2num(datetime.strptime(pos[0], "%m/%d/%Y")))
+            if symbol == 'Sweep': shareplot[symbol]['v'].append(basis)
+            else:                 shareplot[symbol]['v'].append(share)
+            basisplot[symbol]['v'].append(basis)
+            valueplot[symbol]['v'].append(value)
+            print(datafmt % (warn, pos[0], pos[2], pos[5], pos[8], share, basis, value))
+        costbasis[symbol] = basis
+        shareplot[symbol]['t'].append(mpl.dates.date2num(datetime.strptime(" ".join(csvinfo.split()[-3:-1]), "%m/%d/%Y %H:%M:%S")))
         if symbol == 'Sweep': shareplot[symbol]['v'].append(basis)
         else:                 shareplot[symbol]['v'].append(share)
+        basisplot[symbol]['t'].append(mpl.dates.date2num(datetime.strptime(" ".join(csvinfo.split()[-3:-1]), "%m/%d/%Y %H:%M:%S")))
         basisplot[symbol]['v'].append(basis)
+        valueplot[symbol]['t'].append(mpl.dates.date2num(datetime.strptime(" ".join(csvinfo.split()[-3:-1]), "%m/%d/%Y %H:%M:%S")))
         valueplot[symbol]['v'].append(value)
-        print(datafmt % (warn, pos[0], pos[2], pos[5], pos[8], share, basis, value))
-    costbasis[symbol] = basis
-    shareplot[symbol]['t'].append(mpl.dates.date2num(datetime.strptime(" ".join(csvinfo.split()[-3:-1]), "%m/%d/%Y %H:%M:%S")))
-    if symbol == 'Sweep': shareplot[symbol]['v'].append(basis)
-    else:                 shareplot[symbol]['v'].append(share)
-    basisplot[symbol]['t'].append(mpl.dates.date2num(datetime.strptime(" ".join(csvinfo.split()[-3:-1]), "%m/%d/%Y %H:%M:%S")))
-    basisplot[symbol]['v'].append(basis)
-    valueplot[symbol]['t'].append(mpl.dates.date2num(datetime.strptime(" ".join(csvinfo.split()[-3:-1]), "%m/%d/%Y %H:%M:%S")))
-    valueplot[symbol]['v'].append(value)
-    print(center_string("", 108, "=", False))
-    print(datafmt % (" ", "Total", "", 0.0, 0.0, share, basis, value))
-    print(center_string("", 108, "=", False))
+        print(center_string("", 108, "=", False))
+        print(datafmt % (" ", "Total", "", 0.0, 0.0, share, basis, value))
+        print(center_string("", 108, "=", False))
 
-    avdata = None
-    if symbol == 'Sweep': pass
-    elif avenable:
-        try:
-            av = AlphaVantage(symbol, dts=datetime.strptime(positions[symbol][-1][0], "%m/%d/%Y"), dte=datetime.strptime(" ".join(csvinfo.split()[-3:-1]), "%m/%d/%Y %H:%M:%S"))
-            avdata = av.getData()
-        except KeyError: pass
-
-    if not avenable:        print(center_string("AlphaVantage Data Disabled!", 108, "=", True))
-    elif symbol == 'Sweep': print(center_string("AlphaVantage Data Not Available for Bank Sweep", 108, "=", True))
-    elif avdata is None:    print(center_string("AlphaVantage Data for %s Not Found!" % symbol, 108, "=", True))
-
-    T = []
-    V = []
-
-    if avdata is None or len(avdata['Date']) == 0:
-        print(center_string("Assuming %s Share Value Is $1.00" % symbol, 108, "=", True))
-        dts = datetime.strptime(positions[symbol][-1][0], "%m/%d/%Y")
-        dte = datetime.strptime(" ".join(csvinfo.split()[-3:-2]), "%m/%d/%Y")
-        MT  = [dts + timedelta(days=x) for x in range(0, (dte-dts+timedelta(days=1)).days)]
-        MV  = [1.0 for x in range(0, (dte-dts+timedelta(days=1)).days)]
         avdata = None
-    else:
-        MT  = avdata['Date']
-        MV  = avdata['Close']
+        if symbol == 'Sweep': pass
+        elif avenable:
+            try:
+                av = AlphaVantage(symbol, dts=datetime.strptime(positions[symbol][-1][0], "%m/%d/%Y"), dte=datetime.strptime(" ".join(csvinfo.split()[-3:-1]), "%m/%d/%Y %H:%M:%S"))
+                avdata = av.getData()
+            except KeyError: pass
 
-    if avdata is not None:
-        print(center_string("AlphaVantage Update Time: %s" % MT[-1].strftime("%Y/%m/%d"), 108, "=", True))
-    print(center_string("", 108, "=", False))
-    
-    for j, (mt, mv) in enumerate(zip(mpl.dates.date2num(MT), MV)):
-        for i, pt in enumerate(shareplot[symbol]['t']):
-            if pt > mt:
-                t = mt
-                if i == 0: v = 0
-                else:      v = mv*shareplot[symbol]['v'][i-1]
-                T.append(t)
-                V.append(v)
-                break
+        if not avenable:        print(center_string("AlphaVantage Data Disabled!", 108, "=", True))
+        elif symbol == 'Sweep': print(center_string("AlphaVantage Data Not Available for Bank Sweep", 108, "=", True))
+        elif avdata is None:    print(center_string("AlphaVantage Data for %s Not Found!" % symbol, 108, "=", True))
 
-    if symbol != 'Sweep':
-        if not TS and not VS:
-            TS = T; VS = V
+        T = []
+        V = []
+
+        if avdata is None or len(avdata['Date']) == 0:
+            print(center_string("Assuming %s Share Value Is $1.00" % symbol, 108, "=", True))
+            dts = datetime.strptime(positions[symbol][-1][0], "%m/%d/%Y")
+            dte = datetime.strptime(" ".join(csvinfo.split()[-3:-2]), "%m/%d/%Y")
+            MT  = [dts + timedelta(days=x) for x in range(0, (dte-dts+timedelta(days=1)).days)]
+            MV  = [1.0 for x in range(0, (dte-dts+timedelta(days=1)).days)]
+            avdata = None
         else:
-            TS, VS = add_series(TS, VS, T, V, zl=True, zr=False, verbose=False)
+            MT  = avdata['Date']
+            MV  = avdata['Close']
 
-        plt.figure("Share Prices")
-        plt.step(MT, MV, where="post", label=symbol)
-        plt.title("Share Prices")
+        if avdata is not None:
+            print(center_string("AlphaVantage Update Time: %s" % MT[-1].strftime("%Y/%m/%d"), 108, "=", True))
+        print(center_string("", 108, "=", False))
+        
+        for j, (mt, mv) in enumerate(zip(mpl.dates.date2num(MT), MV)):
+            for i, pt in enumerate(shareplot[symbol]['t']):
+                if pt > mt:
+                    t = mt
+                    if i == 0: v = 0
+                    else:      v = mv*shareplot[symbol]['v'][i-1]
+                    T.append(t)
+                    V.append(v)
+                    break
+
+        if symbol != 'Sweep':
+            if not TS and not VS:
+                TS = T; VS = V
+            else:
+                TS, VS = add_series(TS, VS, T, V, zl=True, zr=False, verbose=False)
+
+            plt.figure("Share Prices")
+            plt.step(MT, MV, where="post", label=symbol)
+            plt.title("Share Prices")
+            plt.xlabel("Date")
+            plt.ylabel("Share Price ($)")
+            plt.legend()
+
+            plt.figure("Portfolio Market Value")
+            plt.step(mpl.dates.num2date(T, tz=tz.tzutc()), V, where="post", label=symbol)
+            plt.title("Portfolio Market Value")
+            plt.xlabel("Date")
+            plt.ylabel("Value ($)")
+            plt.legend()
+
+    #valuetotal = 0.
+    #for symbol in basisplot.keys():
+    #    valuetotal += valueplot[symbol]['v'][-1]
+    #    print("%-5s : %+9.2f %+9.2f" % (symbol, basisplot[symbol]['v'][-1], valueplot[symbol]['v'][-1]))
+    #print("%-5s :           %+9.2f" % ("Avail", valuetotal))
+
+    for symbol, plot in shareplot.items():
+        if symbol == 'Sweep': continue
+        plt.figure("Share Quantity")
+        plt.step(mpl.dates.num2date(plot['t'], tz=tz.tzutc()), plot['v'], where="post", label=symbol)
+        plt.title("Share Quantity")
         plt.xlabel("Date")
-        plt.ylabel("Share Price ($)")
+        plt.ylabel("Shares")
         plt.legend()
 
-        plt.figure("Portfolio Market Value")
-        plt.step(mpl.dates.num2date(T, tz=tz.tzutc()), V, where="post", label=symbol)
-        plt.title("Portfolio Market Value")
+    basisTS = []; basisVS = []
+    for symbol, plot in basisplot.items():
+        if not basisTS and not basisVS:
+            basisTS = plot['t']; basisVS = plot['v']
+        else:
+            basisTS, basisVS = add_series(basisTS, basisVS, plot['t'], plot['v'], zl=True, zr=False, verbose=False)
+        plt.figure("Portfolio Basis")
+        plt.step(mpl.dates.num2date(plot['t'], tz=tz.tzutc()), plot['v'], where="post", label=symbol)
+        plt.title("Portfolio Basis")
         plt.xlabel("Date")
         plt.ylabel("Value ($)")
         plt.legend()
-
-#valuetotal = 0.
-#for symbol in basisplot.keys():
-#    valuetotal += valueplot[symbol]['v'][-1]
-#    print("%-5s : %+9.2f %+9.2f" % (symbol, basisplot[symbol]['v'][-1], valueplot[symbol]['v'][-1]))
-#print("%-5s :           %+9.2f" % ("Avail", valuetotal))
-
-for symbol, plot in shareplot.items():
-    if symbol == 'Sweep': continue
-    plt.figure("Share Quantity")
-    plt.step(mpl.dates.num2date(plot['t'], tz=tz.tzutc()), plot['v'], where="post", label=symbol)
-    plt.title("Share Quantity")
-    plt.xlabel("Date")
-    plt.ylabel("Shares")
+    plt.figure("Portfolio Basis")
+    plt.step(mpl.dates.num2date(basisTS, tz=tz.tzutc()), basisVS, where="post", label="Total")
     plt.legend()
 
-basisTS = []; basisVS = []
-for symbol, plot in basisplot.items():
-    if not basisTS and not basisVS:
-        basisTS = plot['t']; basisVS = plot['v']
-    else:
-        basisTS, basisVS = add_series(basisTS, basisVS, plot['t'], plot['v'], zl=True, zr=False, verbose=False)
-    plt.figure("Portfolio Basis")
-    plt.step(mpl.dates.num2date(plot['t'], tz=tz.tzutc()), plot['v'], where="post", label=symbol)
-    plt.title("Portfolio Basis")
+    valueTS = []; valueVS = []
+    for symbol, plot in valueplot.items():
+        if not valueTS and not valueVS:
+            valueTS = plot['t']; valueVS = plot['v']
+        else:
+            valueTS, valueVS = add_series(valueTS, valueVS, plot['t'], plot['v'], zl=True, zr=False, verbose=False)
+    plt.figure("Available Cash")
+    plt.step(mpl.dates.num2date(valueTS, tz=tz.tzutc()), valueVS, where="post")
+    plt.title("Available Cash")
+    plt.xlabel("Date")
+    plt.ylabel("Value ($)")
+
+    TS, VS = add_series(TS, VS, valueTS, valueVS, zl=True, zr=False, verbose=False)
+    plt.figure("Portfolio Market Value")
+    plt.step(mpl.dates.num2date(valueTS, tz=tz.tzutc()), valueVS, where="post", label="Cash")
+    plt.step(mpl.dates.num2date(TS, tz=tz.tzutc()), VS, where="post", label="Total")
+    plt.legend()
+
+    plt.figure("Account Contributions")
+    plt.step(mpl.dates.num2date(contdate, tz=tz.tzutc()), contvalu, where="post")
+    plt.title("Account Contributions ($%.2f)" % conttotl)
+    plt.xlabel("Date")
+    plt.ylabel("Contributed Value ($)")
+
+    earnTS, earnVS = add_series(TS, VS, contdate, contvalu, scale=-1, zl=True, zr=False, verbose=False)
+    plt.figure("Portfolio Earnings")
+    plt.step(mpl.dates.num2date(earnTS, tz=tz.tzutc()), earnVS, where="post")
+    plt.title("Portfolio Earnings")
+    plt.xlabel("Date")
+    plt.ylabel("Earnings ($)")
+
+    plt.figure("Portfolio Performance")
+    plt.step(mpl.dates.num2date(TS, tz=tz.tzutc()), VS, where="post", label="Total")
+    plt.step(mpl.dates.num2date(contdate, tz=tz.tzutc()), contvalu, where="post", label="Contributions")
+    plt.step(mpl.dates.num2date(earnTS, tz=tz.tzutc()), earnVS, where="post", label="Earnings")
+    plt.title("Portfolio Performance")
     plt.xlabel("Date")
     plt.ylabel("Value ($)")
     plt.legend()
-plt.figure("Portfolio Basis")
-plt.step(mpl.dates.num2date(basisTS, tz=tz.tzutc()), basisVS, where="post", label="Total")
-plt.legend()
 
-valueTS = []; valueVS = []
-for symbol, plot in valueplot.items():
-    if not valueTS and not valueVS:
-        valueTS = plot['t']; valueVS = plot['v']
-    else:
-        valueTS, valueVS = add_series(valueTS, valueVS, plot['t'], plot['v'], zl=True, zr=False, verbose=False)
-plt.figure("Available Cash")
-plt.step(mpl.dates.num2date(valueTS, tz=tz.tzutc()), valueVS, where="post")
-plt.title("Available Cash")
-plt.xlabel("Date")
-plt.ylabel("Value ($)")
-
-TS, VS = add_series(TS, VS, valueTS, valueVS, zl=True, zr=False, verbose=False)
-plt.figure("Portfolio Market Value")
-plt.step(mpl.dates.num2date(valueTS, tz=tz.tzutc()), valueVS, where="post", label="Cash")
-plt.step(mpl.dates.num2date(TS, tz=tz.tzutc()), VS, where="post", label="Total")
-plt.legend()
-
-plt.figure("Account Contributions")
-plt.step(mpl.dates.num2date(contdate, tz=tz.tzutc()), contvalu, where="post")
-plt.title("Account Contributions ($%.2f)" % conttotl)
-plt.xlabel("Date")
-plt.ylabel("Contributed Value ($)")
-
-earnTS, earnVS = add_series(TS, VS, contdate, contvalu, scale=-1, zl=True, zr=False, verbose=False)
-plt.figure("Portfolio Earnings")
-plt.step(mpl.dates.num2date(earnTS, tz=tz.tzutc()), earnVS, where="post")
-plt.title("Portfolio Earnings")
-plt.xlabel("Date")
-plt.ylabel("Earnings ($)")
-
-plt.figure("Portfolio Performance")
-plt.step(mpl.dates.num2date(TS, tz=tz.tzutc()), VS, where="post", label="Total")
-plt.step(mpl.dates.num2date(contdate, tz=tz.tzutc()), contvalu, where="post", label="Contributions")
-plt.step(mpl.dates.num2date(earnTS, tz=tz.tzutc()), earnVS, where="post", label="Earnings")
-plt.title("Portfolio Performance")
-plt.xlabel("Date")
-plt.ylabel("Value ($)")
-plt.legend()
-
-plt.show()
+    plt.show()

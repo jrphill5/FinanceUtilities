@@ -100,4 +100,9 @@ avapi.py
 # SQLite databases
 *.db
 
+Data
 Data/*
+Data*
+Data*/*
+cache
+cache/*
