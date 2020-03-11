@@ -8,7 +8,7 @@ import BasicFinance, FinanceDatabase, FinancePlot
 class AlphaVantage:
     def __init__(self, symbol, dts = datetime.now() - timedelta(days=365), dte = datetime.now(), nl = 10, nh = 30):
         self.bf = BasicFinance.BasicFinance()
-        #self.fd = FinanceDatabase.FinanceDatabase(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'finance.db'), 'AlphaVantage')
+        self.fd = FinanceDatabase.FinanceDatabase(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'finance.db'), 'AlphaVantage')
 
         self.symbol = symbol
 
@@ -18,7 +18,7 @@ class AlphaVantage:
         self.nl = nl
         self.nh = nh
 
-        self.openEnd = (symbol[-1] == 'X')
+        self.openEnd = (len(symbol) == 5 and symbol[-1] == 'X')
 
         # Create datetime object for the actual start time accounting for loss due to moving average:
         self.dd = (self.dte-self.dts).days
@@ -37,31 +37,37 @@ class AlphaVantage:
         return self.data
 
     def fetchData(self):
+        # Hardcode disable reading from DB for now
         return False
+
         # Attempt to read in data from database:
-        #stored = self.fd.fetchAll(self.symbol)
-        #if stored is None: return False
+        stored = self.fd.fetchAll(self.symbol)
+        if stored is None: return False
 
         # Define data structure for holding quote information:
-        #data = { 'Date':     [], 'Open':     [], 'High':     [],
-        #         'Low':      [], 'Close':    [], 'Volume':   []  }
+        data = { 'Date':     [], 'Open':     [], 'High':     [],
+                 'Low':      [], 'Close':    [], 'Volume':   []  }
 
         # Populate data structure with information from database:
-        #for d, c in zip(stored['Date'], stored['Close']):
-        #    if d >= self.dtp and d <= self.dte:
-        #        data['Date'].append(d)
-        #        data['Close'].append(c)
+        for d, c in zip(stored['Date'], stored['Close']):
+            if d >= self.dtp and d <= self.dte:
+                data['Date'].append(d)
+                data['Close'].append(c)
 
         # Determine expected and actual trading days:
-        #acts = [d.strftime('%D') for d in data['Date']]
-        #exps = [d.strftime('%D') for d in self.bf.getTradingDays(self.dtp, self.dte)]
+        acts = [d.strftime('%D') for d in data['Date']]
+        exps = [d.strftime('%D') for d in self.bf.getTradingDays(self.dtp, self.dte)]
 
-        # If not equal, data is missing, so download:
-        #if acts == exps:
-        #    self.data = data
-        #    return True
-        #else:
-        #    return False
+        today = datetime.today()
+        dmo = datetime(today.year, today.month, today.day,  9, 30, 00)
+        dmc = datetime(today.year, today.month, today.day, 16, 00, 00)
+
+        # If data is missing or within trading hours, download:
+        if all(elem in exps for elem in acts) or (datetime.today().strftime('%D') == exps[-1] and dmo <= today <= dmc):
+            self.data = data
+            return True
+        else:
+            return False
 
     # Send values to remote webserver and download CSV reply:
     def downloadData(self):
@@ -74,7 +80,7 @@ class AlphaVantage:
             raw  = resp.json()
 
             if 'Error Message' not in raw:
-                # Define date and time formats used by Alpha Vantage
+                # Define date and time formats used by AlphaVantage
                 datefmt = '%Y-%m-%d'; datelen = 10
                 timefmt = '%H:%M:%S'; timelen =  8
 
@@ -106,8 +112,8 @@ class AlphaVantage:
                         data['Close'].append( float(v['4. close']))
                         data['Volume'].append(int(  v['5. volume']))
 
-                # Check most recent data for closed end funds like SWISX and SWTSX
-                if len(self.symbol) == 5 and self.symbol.upper()[-1] == 'X':
+                # Check most recent data for open end funds (such as mutual funds)
+                if self.openEnd:
                     params = {'function': 'TIME_SERIES_INTRADAY', 'symbol': self.symbol, 'interval': '5min', 'apikey': apikey}
                     resp   = requests.get(url, params=params)
 
@@ -144,7 +150,7 @@ class AlphaVantage:
                 self.data = data
 
                 # Insert information into database:
-                #self.fd.insertAll(self.symbol, self.data['Date'], self.data['Close'])
+                self.fd.insertAll(self.symbol, self.data['Date'], self.data['Close'])
             else: self.data = None
         else: self.data = None
 
@@ -186,8 +192,8 @@ if __name__ == "__main__":
             print("Could not retrieve data from remote server for %s." % smb)
             continue
 
-        # Plot all Alpha Vantage symbols:
-        fp = FinancePlot.FinancePlot('Alpha Vantage', av.dd, imgpath)
+        # Plot all AlphaVantage symbols:
+        fp = FinancePlot.FinancePlot('AlphaVantage', av.dd, imgpath)
 
         # Plot symbol and the SMAs and signals:
-        fp.plotSignals(av, data['Date'], data['Close'], 0, smb, 'EWMA', av.head['Updated'])
+        fp.plotSignals(av, data['Date'], data['Close'], 0, smb, 'EWMA', data['Date'][-1])
