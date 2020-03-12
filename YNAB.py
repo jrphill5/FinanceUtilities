@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 from Schwab import add_series, remove_duplicates
 
 # Create a file called auth.py containing a definition for the token
-try: from auth import token
+try: from FinanceAuth import tokenYNAB as token
 except ImportError: token = None
 
 # Define account indices to omit from computation

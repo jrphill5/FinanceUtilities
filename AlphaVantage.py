@@ -2,7 +2,7 @@ import requests, pandas, os, sys
 from matplotlib.dates import num2date, date2num
 from datetime import datetime, timedelta
 
-from avapi import apikey
+from FinanceAuth import tokenAlphaVantage as apikey
 import BasicFinance, FinanceDatabase, FinancePlot
 
 class AlphaVantage:

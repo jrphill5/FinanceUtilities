@@ -95,7 +95,7 @@ images/
 auth.py
 
 # API key information
-avapi.py
+FinanceAuth.py
 
 # SQLite databases
 *.db
