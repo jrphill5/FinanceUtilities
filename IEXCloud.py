@@ -2,7 +2,7 @@ import os
 from iexfinance.stocks import Stock
 from pprint import pprint
 
-production = True
+production = False
 
 symbol = "AAPL"
 
