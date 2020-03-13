@@ -1,10 +1,11 @@
-import os
+import os, sys
 from iexfinance.stocks import Stock
 from pprint import pprint
 
 production = False
 
-symbol = "AAPL"
+if len(sys.argv) == 1: symbol = "AAPL"
+else:                  symbol = sys.argv[1]
 
 if production:
     from FinanceAuth import tokenIEXCloudProd as token
