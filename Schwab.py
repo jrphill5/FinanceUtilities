@@ -285,7 +285,7 @@ if __name__ == "__main__":
         for pos in reversed(positions[symbol]):
             share += -sign(pos[8])*pos[5]
             value += pos[8]
-            if pos[2] not in ["Reinvest Dividend", "Cash Dividend", "Long Term Cap Gain Reinvest", "Short Term Cap Gain Reinvest", "Security Transfer", "Bank Interest"]:
+            if pos[2] not in ["Reinvest Dividend", "Cash Dividend", "Long Term Cap Gain Reinvest", "Short Term Cap Gain Reinvest", "Security Transfer", "Bank Interest", "Funds Received"]:
                 basis += pos[8]
                 warn   = " "
             else:
@@ -409,7 +409,7 @@ if __name__ == "__main__":
             valueTS, valueVS = add_series(valueTS, valueVS, plot['t'], plot['v'], zl=True, zr=False, verbose=False)
     plt.figure("Available Cash")
     plt.step(mpl.dates.num2date(valueTS, tz=tz.tzutc()), valueVS, where="post")
-    plt.title("Available Cash")
+    plt.title("Available Cash ($%.2f)" % valueVS[-1])
     plt.xlabel("Date")
     plt.ylabel("Value ($)")
 
@@ -428,7 +428,7 @@ if __name__ == "__main__":
     earnTS, earnVS = add_series(TS, VS, contdate, contvalu, scale=-1, zl=True, zr=False, verbose=False)
     plt.figure("Portfolio Earnings")
     plt.step(mpl.dates.num2date(earnTS, tz=tz.tzutc()), earnVS, where="post")
-    plt.title("Portfolio Earnings")
+    plt.title(("Portfolio Earnings (%+.2f)" % earnVS[-1]).replace("+", "+$").replace("-", "-$"))
     plt.xlabel("Date")
     plt.ylabel("Earnings ($)")
 
