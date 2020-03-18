@@ -1,4 +1,4 @@
-import os, sys, csv, glob
+import os, sys, csv, glob, time
 import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -111,7 +111,7 @@ def print_file_info(trnfile, posfile, balfile):
     print("Balances     : %s" % balfile)
     print(center_string("", max(lentrnfile, lenposfile, lenbalfile)+15, "=", False))
 
-def add_series(T1, V1, T2, V2, scale=1, zl=True, zr=False, verbose=False):
+def add_series(T1, V1, T2, V2, scale=1., zl=True, zr=False, verbose=False):
 
     T1 = T1.copy(); V1 = V1.copy()
     T2 = T2.copy(); V2 = V2.copy()
@@ -170,8 +170,65 @@ def add_series(T1, V1, T2, V2, scale=1, zl=True, zr=False, verbose=False):
                 TS.append(T2[i2])
                 VS.append(V1[i1-1] + scale*V2[i2])
                 i2 += 1
-        except IndexError:
-            break
+        except IndexError: break
+
+    return remove_duplicates(TS, VS)
+
+def div_series(T1, V1, T2, V2, scale=1., verbose=False):
+
+    T1 = T1.copy(); V1 = V1.copy()
+    T2 = T2.copy(); V2 = V2.copy()
+    TS = [];        VS = []
+    i1 = 0;         i2 = 0
+
+    if T1 != sorted(T1): print("[ERROR] first time series not sorted")
+    if T2 != sorted(T2): print("[ERROR] second time series not sorted")
+
+    T1min = T1[0]; T1max = T1[-1]
+    T2min = T2[0]; T2max = T2[-1]
+    TSmin = min(T1min, T2min)
+    TSmax = max(T1max, T2max)
+
+    if T1min != T2min and verbose: print("[WARN] time series do not share same start date (%s, %s)" % (T1min, T2min))
+    if T1max != T2max and verbose: print("[WARN] time series do not share same end date (%s, %s)" % (T1max, T2max))
+
+    if T1min > T2min:
+        T1.insert(0, T2min)
+        V1.insert(0, V1[0])
+        if verbose: print("[WARN] expanding first time series to left with value of %.2f" % V1[0])
+    elif T2min > T1min:
+        T2.insert(0, T1min)
+        V2.insert(0, V2[0])
+        if verbose: print("[WARN] expanding second time series to left with value of %.2f" % V2[0])
+
+    if T1max < T2max:
+        T1.append(T2max)
+        V1.append(V1[-1])
+        if verbose: print("[WARN] expanding first time series to right with value of %.2f" % V1[-1])
+    elif T2max < T1max:
+        T2.append(T1max)
+        V2.append(V2[-1])
+        if verbose: print("[WARN] expanding second time series to right with value of %.2f" % V2[-1])
+
+    while True:
+        try:
+            if T1[i1] == T2[i2]:
+                if V2[i2] != 0.:
+                    TS.append(T1[i1])
+                    VS.append(scale * V1[i1] / V2[i2])
+                i1 += 1
+                i2 += 1
+            elif T1[i1] < T2[i2]:
+                if V2[i2-1] != 0.:
+                    TS.append(T1[i1])
+                    VS.append(scale * V1[i1] / V2[i2-1])
+                i1 += 1
+            elif T1[i1] > T2[i2]:
+                if V2[i2] != 0.:
+                    TS.append(T2[i2])
+                    VS.append(scale * V1[i1-1] / V2[i2])
+                i2 += 1
+        except IndexError: break
 
     return remove_duplicates(TS, VS)
 
@@ -370,6 +427,11 @@ if __name__ == "__main__":
             plt.ylabel("Value ($)")
             plt.legend()
 
+        if avdata is not None:
+            sleepsecs = 60. / 5
+            print("\nWaiting for AlphaVantage rate limit ...")
+            time.sleep(sleepsecs)
+
     #valuetotal = 0.
     #for symbol in basisplot.keys():
     #    valuetotal += valueplot[symbol]['v'][-1]
@@ -425,12 +487,19 @@ if __name__ == "__main__":
     plt.xlabel("Date")
     plt.ylabel("Contributed Value ($)")
 
-    earnTS, earnVS = add_series(TS, VS, contdate, contvalu, scale=-1, zl=True, zr=False, verbose=False)
-    plt.figure("Portfolio Earnings")
+    earnTS, earnVS = add_series(TS, VS, contdate, contvalu, scale=-1., zl=True, zr=False, verbose=False)
+    plt.figure("Portfolio Earnings ($)")
     plt.step(mpl.dates.num2date(earnTS, tz=tz.tzutc()), earnVS, where="post")
     plt.title(("Portfolio Earnings (%+.2f)" % earnVS[-1]).replace("+", "+$").replace("-", "-$"))
     plt.xlabel("Date")
     plt.ylabel("Earnings ($)")
+
+    percTS, percVS = div_series(earnTS, earnVS, contdate, contvalu, scale=100.)
+    plt.figure("Portfolio Earnings (%)")
+    plt.step(mpl.dates.num2date(percTS, tz=tz.tzutc()), percVS, where="post")
+    plt.title("Portfolio Earnings (%+.2f%%)" % percVS[-1])
+    plt.xlabel("Date")
+    plt.ylabel("Earnings (%)")
 
     plt.figure("Portfolio Performance")
     plt.step(mpl.dates.num2date(TS, tz=tz.tzutc()), VS, where="post", label="Total")
