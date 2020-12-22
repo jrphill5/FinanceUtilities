@@ -2,6 +2,11 @@ import requests, json, sys, re, os
 import numpy as np
 from datetime import datetime, timedelta
 import matplotlib.pyplot as plt
+import matplotlib.ticker
+
+# Include to avoid FutureWarning
+from pandas.plotting import register_matplotlib_converters
+register_matplotlib_converters()
 
 # Import convenience functions from Schwab.py
 from Schwab import add_series, remove_duplicates
@@ -11,7 +16,7 @@ try: from FinanceAuth import tokenYNAB as token
 except ImportError: token = None
 
 # Define account indices to omit from computation
-omitidx = [5, 12, 15]
+omitidx = []
 
 # Define cache directory for JSON files
 cachedir = "cache"
@@ -90,6 +95,37 @@ def load_cache(endpoint, token, timeout):
             json.dump(jsoninfo, fh)
             print("done!")
     return jsoninfo
+
+def reformat_ticks_K(val, pos):
+    return reformat_ticks(val, pos, 'K')
+
+def reformat_ticks_M(val, pos):
+    return reformat_ticks(val, pos, 'M')
+
+def reformat_ticks_B(val, pos):
+    return reformat_ticks(val, pos, 'B')
+
+def reformat_ticks(val, pos, divisor=''):
+    format_dict = {'K': 1e3, 'M': 1e6, 'B': 1e9}
+    if divisor in format_dict.keys():
+        return '{:}'.format(round(val/format_dict[divisor], 1))
+    else:
+        return '{:}'.format(round(val, 1))
+
+def scale_yaxis(l):
+    max_val = max(abs(max(l)), abs(min(l)))
+    if max_val >= 1e9:
+        div = 'B'
+        plt.gca().yaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(reformat_ticks_B));
+    elif max_val >= 1e6:
+        div = 'M'
+        plt.gca().yaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(reformat_ticks_M));
+    elif max_val >= 1e3:
+        div = 'K'
+        plt.gca().yaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(reformat_ticks_K));
+    else:
+        div = ''
+    return div
 
 # Cache budget JSON information
 budgjson = load_cache(['budgets'], token, budgtout)
@@ -209,23 +245,23 @@ for name, plot in plots.items():
 
     # Create plot for each account
     #plt.figure(name)
-    #plt.title(name)
+    #plt.title("{:} ({:+,.2f})".format(name, B[-1]).replace("+", "+$").replace("-", "-$"))
     #plt.xlabel("Date")
-    #plt.ylabel("Value ($)")
+    #plt.ylabel("Value ({:}$)".format(scale_yaxis(B)))
     #plt.step(D, B, where="post")
 
 # Plot net worth
 plt.figure("Net Worth")
-plt.title(("Net Worth (%+.2f)" % BN[-1]).replace("+", "+$").replace("-", "-$"))
+plt.title("Net Worth ({:+,.2f})".format(BN[-1]).replace("+", "+$").replace("-", "-$"))
 plt.xlabel("Date")
-plt.ylabel("Value ($)")
+plt.ylabel("Value ({:}$)".format(scale_yaxis(BN)))
 plt.step(DN, BN, where="post")
 
 # Plot selective sum
 plt.figure("Selective Sum")
-plt.title(("Selective Sum (%+.2f)" % BS[-1]).replace("+", "+$").replace("-", "-$"))
+plt.title("Selective Sum ({:+,.2f})".format(BS[-1]).replace("+", "+$").replace("-", "-$"))
 plt.xlabel("Date")
-plt.ylabel("Value ($)")
+plt.ylabel("Value ({:}$)".format(scale_yaxis(BS)))
 plt.step(DS, BS, where="post")
 
 # Show all plots
