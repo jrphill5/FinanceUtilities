@@ -1,6 +1,6 @@
 import requests, json, sys, re, os
 import numpy as np
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 import matplotlib.pyplot as plt
 import matplotlib.ticker
 
@@ -250,6 +250,45 @@ for name, plot in plots.items():
     #plt.ylabel("Value ({:}$)".format(scale_yaxis(B)))
     #plt.step(D, B, where="post")
 
+def increment_month(y, m):
+    nm = m + 1
+    ny = y
+    if nm > 12:
+        nm = 1
+        ny = y + 1
+    return ny, nm
+
+def compute_deltas(D, B):
+    Dnp = np.array(D)
+    Bnp = np.array(B)
+    DB = []; BB = []
+    curyear, curmonth = D[ 0].year, D[ 0].month
+    endyear, endmonth = increment_month(D[-1].year, D[-1].month)
+    while curyear < endyear or curmonth < endmonth:
+        curdate = date(curyear, curmonth, 1)
+        DB.append(curdate)
+        nxtyear, nxtmonth = increment_month(curyear, curmonth)
+        nxtdate = date(nxtyear, nxtmonth, 1)
+        idx = np.where((Dnp >= curdate) & (Dnp < nxtdate))
+        BB.append(Bnp[idx[0][0]])
+        curyear, curmonth = nxtyear, nxtmonth
+    DB.append(date.today())
+    BB.append(B[-1])
+    DBnp = np.array(DB)
+    BBnp = np.array(BB)
+    BBnp = np.append(BBnp[1:] - BBnp[:-1], BBnp[-1] - BBnp[-2])
+    return DBnp, BBnp
+
+def select_positive(BBnp):
+    BBPnp = np.copy(BBnp)
+    BBPnp[np.where(BBnp< 0)] = 0
+    return BBPnp
+
+def select_negative(BBnp):
+    BBNnp = np.copy(BBnp)
+    BBNnp[np.where(BBnp>=0)] = 0
+    return BBNnp
+
 # Plot net worth
 plt.figure("Net Worth")
 plt.title("Net Worth ({:+,.2f})".format(BN[-1]).replace("+", "+$").replace("-", "-$"))
@@ -257,12 +296,32 @@ plt.xlabel("Date")
 plt.ylabel("Value ({:}$)".format(scale_yaxis(BN)))
 plt.step(DN, BN, where="post")
 
+# Plot net worth monthly delta bars
+DNBnp, BNBnp = compute_deltas(DN, BN)
+plt.figure("Net Worth Monthly Deltas")
+plt.title("Net Worth Monthly Deltas ({:+,.2f})".format(BNBnp[-1]).replace("+", "+$").replace("-", "-$"))
+plt.xlabel("Date")
+plt.ylabel("Value ({:}$)".format(scale_yaxis(BNBnp)))
+plt.fill_between(DNBnp, select_negative(BNBnp), 0, step="post", color="tab:red")
+plt.fill_between(DNBnp, select_positive(BNBnp), 0, step="post", color="tab:green")
+plt.step(np.append(np.insert(DNBnp, 0, DNBnp[0]), DNBnp[-1]), np.append(np.insert(BNBnp, 0, 0), 0), where="post")
+
 # Plot selective sum
 plt.figure("Selective Sum")
 plt.title("Selective Sum ({:+,.2f})".format(BS[-1]).replace("+", "+$").replace("-", "-$"))
 plt.xlabel("Date")
 plt.ylabel("Value ({:}$)".format(scale_yaxis(BS)))
 plt.step(DS, BS, where="post")
+
+# Plot selective sum monthly delta bars
+DSBnp, BSBnp = compute_deltas(DS, BS)
+plt.figure("Selective Sum Monthly Deltas")
+plt.title("Selective Sum Monthly Deltas ({:+,.2f})".format(BSBnp[-1]).replace("+", "+$").replace("-", "-$"))
+plt.xlabel("Date")
+plt.ylabel("Value ({:}$)".format(scale_yaxis(BSBnp)))
+plt.fill_between(DSBnp, select_negative(BSBnp), 0, step="post", color="tab:red")
+plt.fill_between(DSBnp, select_positive(BSBnp), 0, step="post", color="tab:green")
+plt.step(np.append(np.insert(DSBnp, 0, DSBnp[0]), DSBnp[-1]), np.append(np.insert(BSBnp, 0, 0), 0), where="post")
 
 # Show all plots
 plt.show()
