@@ -258,12 +258,10 @@ def increment_month(y, m):
         ny = y + 1
     return ny, nm
 
-def compute_deltas(D, B):
-    Dnp = np.array(D)
-    Bnp = np.array(B)
+def compute_deltas(Dnp, Bnp):
     DB = []; BB = []
-    curyear, curmonth = D[ 0].year, D[ 0].month
-    endyear, endmonth = increment_month(D[-1].year, D[-1].month)
+    curyear, curmonth = Dnp[ 0].year, Dnp[ 0].month
+    endyear, endmonth = increment_month(Dnp[-1].year, Dnp[-1].month)
     while curyear < endyear or curmonth < endmonth:
         curdate = date(curyear, curmonth, 1)
         DB.append(curdate)
@@ -273,7 +271,7 @@ def compute_deltas(D, B):
         BB.append(Bnp[idx[0][0]])
         curyear, curmonth = nxtyear, nxtmonth
     DB.append(date.today())
-    BB.append(B[-1])
+    BB.append(Bnp[-1])
     DBnp = np.array(DB)
     BBnp = np.array(BB)
     BBnp = np.append(BBnp[1:] - BBnp[:-1], BBnp[-1] - BBnp[-2])
@@ -289,39 +287,51 @@ def select_negative(BBnp):
     BBNnp[np.where(BBnp>=0)] = 0
     return BBNnp
 
+# Create net worth numpy arrays
+DNnp = np.array(DN)
+BNnp = np.array(BN)
+
 # Plot net worth
 plt.figure("Net Worth")
-plt.title("Net Worth ({:+,.2f})".format(BN[-1]).replace("+", "+$").replace("-", "-$"))
+plt.title("Net Worth ({:+,.2f})".format(BNnp[-1]).replace("+", "+$").replace("-", "-$"))
 plt.xlabel("Date")
-plt.ylabel("Value ({:}$)".format(scale_yaxis(BN)))
-plt.step(DN, BN, where="post")
+plt.ylabel("Value ({:}$)".format(scale_yaxis(BNnp)))
+plt.fill_between(DNnp, select_negative(BNnp), 0, step="post", color="tab:red", alpha=0.25)
+plt.fill_between(DNnp, select_positive(BNnp), 0, step="post", color="tab:green", alpha=0.25)
+plt.step(DNnp, BNnp, where="post")
 
 # Plot net worth monthly delta bars
-DNBnp, BNBnp = compute_deltas(DN, BN)
+DNBnp, BNBnp = compute_deltas(DNnp, BNnp)
 plt.figure("Net Worth Monthly Deltas")
 plt.title("Net Worth Monthly Deltas ({:+,.2f})".format(BNBnp[-1]).replace("+", "+$").replace("-", "-$"))
 plt.xlabel("Date")
 plt.ylabel("Value ({:}$)".format(scale_yaxis(BNBnp)))
-plt.fill_between(DNBnp, select_negative(BNBnp), 0, step="post", color="tab:red")
-plt.fill_between(DNBnp, select_positive(BNBnp), 0, step="post", color="tab:green")
-plt.step(np.append(np.insert(DNBnp, 0, DNBnp[0]), DNBnp[-1]), np.append(np.insert(BNBnp, 0, 0), 0), where="post")
+plt.fill_between(DNBnp, select_negative(BNBnp), 0, step="post", color="tab:red", alpha=0.25)
+plt.fill_between(DNBnp, select_positive(BNBnp), 0, step="post", color="tab:green", alpha=0.25)
+plt.step(DNBnp, BNBnp, where="post")
+
+# Create selective sum numpy arrays
+DSnp = np.array(DS)
+BSnp = np.array(BS)
 
 # Plot selective sum
 plt.figure("Selective Sum")
-plt.title("Selective Sum ({:+,.2f})".format(BS[-1]).replace("+", "+$").replace("-", "-$"))
+plt.title("Selective Sum ({:+,.2f})".format(BSnp[-1]).replace("+", "+$").replace("-", "-$"))
 plt.xlabel("Date")
-plt.ylabel("Value ({:}$)".format(scale_yaxis(BS)))
-plt.step(DS, BS, where="post")
+plt.ylabel("Value ({:}$)".format(scale_yaxis(BSnp)))
+plt.fill_between(DSnp, select_negative(BSnp), 0, step="post", color="tab:red", alpha=0.25)
+plt.fill_between(DSnp, select_positive(BSnp), 0, step="post", color="tab:green", alpha=0.25)
+plt.step(DSnp, BSnp, where="post")
 
 # Plot selective sum monthly delta bars
-DSBnp, BSBnp = compute_deltas(DS, BS)
+DSBnp, BSBnp = compute_deltas(DSnp, BSnp)
 plt.figure("Selective Sum Monthly Deltas")
 plt.title("Selective Sum Monthly Deltas ({:+,.2f})".format(BSBnp[-1]).replace("+", "+$").replace("-", "-$"))
 plt.xlabel("Date")
 plt.ylabel("Value ({:}$)".format(scale_yaxis(BSBnp)))
-plt.fill_between(DSBnp, select_negative(BSBnp), 0, step="post", color="tab:red")
-plt.fill_between(DSBnp, select_positive(BSBnp), 0, step="post", color="tab:green")
-plt.step(np.append(np.insert(DSBnp, 0, DSBnp[0]), DSBnp[-1]), np.append(np.insert(BSBnp, 0, 0), 0), where="post")
+plt.fill_between(DSBnp, select_negative(BSBnp), 0, step="post", color="tab:red", alpha=0.25)
+plt.fill_between(DSBnp, select_positive(BSBnp), 0, step="post", color="tab:green", alpha=0.25)
+plt.step(DSBnp, BSBnp, where="post")
 
 # Show all plots
 plt.show()
