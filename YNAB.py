@@ -85,11 +85,13 @@ def load_cache(endpoint, token, timeout):
     jsoninfo = None
     if os.path.exists(filename) and os.path.isfile(filename) and (timeout is None or datetime.now() - timedelta(minutes=timeout) < datetime.fromtimestamp(os.path.getmtime(filename))):
         sys.stdout.write("Saved JSON info for %s fresh, reading from file ... " % endpoint[-1])
+        sys.stdout.flush()
         with open(filename, "r") as fh:
             jsoninfo = json.load(fh)
             print("done!")
     else:
         sys.stdout.write("Saved JSON info for %s stale, requesting from server ... " % endpoint[-1])
+        sys.stdout.flush()
         jsoninfo = ynab_request(endpoint, token)
         with open(filename, "w+") as fh:
             json.dump(jsoninfo, fh)
@@ -250,26 +252,91 @@ for name, plot in plots.items():
     #plt.ylabel("Value ({:}$)".format(scale_yaxis(B)))
     #plt.step(D, B, where="post")
 
-def increment_month(y, m):
-    nm = m + 1
-    ny = y
-    if nm > 12:
-        nm = 1
-        ny = y + 1
-    return ny, nm
+def decrement_nmonth(dt, months):
+    years, months = np.divmod(months, 12)
+    year  = dt.year  - years
+    month = dt.month - months
+    if month <= 0:
+        year  -= 1
+        month += 12
+    return date(year, month, dt.day)
 
-def compute_deltas(Dnp, Bnp):
+def increment_nmonth(dt, months):
+    years, months = np.divmod(months, 12)
+    year  = dt.year  + years
+    month = dt.month + months
+    if month > 12:
+        year  += 1
+        month -= 12
+    return date(year, month, dt.day)
+
+def increment_biweekly(y, m, d):
+    dt = date(y, m, d) + timedelta(days=14)
+    return dt.year, dt.month, dt.day
+
+# Counts backwards from most recent day
+def compute_nmonth_deltas(Dnp, Bnp, months):
     DB = []; BB = []
-    curyear, curmonth = Dnp[ 0].year, Dnp[ 0].month
-    endyear, endmonth = increment_month(Dnp[-1].year, Dnp[-1].month)
-    while curyear < endyear or curmonth < endmonth:
-        curdate = date(curyear, curmonth, 1)
-        DB.append(curdate)
-        nxtyear, nxtmonth = increment_month(curyear, curmonth)
-        nxtdate = date(nxtyear, nxtmonth, 1)
+    curdate = Dnp[-1]
+    enddate = Dnp[ 0] - timedelta(days=1)
+    while enddate < curdate:
+        prvdate = decrement_nmonth(curdate, months)
+        idx = np.where((Dnp > prvdate) & (Dnp <= curdate))
+        try:
+            BB.append(Bnp[idx[0][-1]])
+            DB.append(curdate)
+        except IndexError:
+            print("WARNING", curdate, prvdate)
+        curdate = prvdate
+    DB.append(Dnp[0])
+    BB.append(Bnp[0])
+    DBnp = np.flip(DB)
+    BBnp = np.flip(BB)
+    BBnp = BBnp[1:] - BBnp[:-1]
+    BBnp = np.append(BBnp, BBnp[-1])
+    return DBnp, BBnp
+
+# Aligned to first day of month
+def compute_monthly_deltas(Dnp, Bnp):
+    DB = []; BB = []
+    curdate = Dnp[ 0].replace(day=1)
+    enddate = increment_nmonth(Dnp[-1], 1).replace(day=1)
+    while curdate < enddate:
+        nxtdate = increment_nmonth(curdate, 1)
         idx = np.where((Dnp >= curdate) & (Dnp < nxtdate))
-        BB.append(Bnp[idx[0][0]])
-        curyear, curmonth = nxtyear, nxtmonth
+        try:
+            BB.append(Bnp[idx[0][0]])
+            DB.append(curdate)
+        except IndexError:
+            print("WARNING", curdate, nxtdate)
+        curdate = nxtdate
+    DB.append(date.today())
+    BB.append(Bnp[-1])
+    DBnp = np.array(DB)
+    BBnp = np.array(BB)
+    BBnp = np.append(BBnp[1:] - BBnp[:-1], BBnp[-1] - BBnp[-2])
+    return DBnp, BBnp
+
+# Aligned to biweekly Friday pay days
+def compute_biweekly_deltas(Dnp, Bnp):
+    DB = []; BB = []
+    curdate = Dnp[0]
+    # If not currently Friday, back up to previous Friday
+    if curdate.weekday() != 4:
+        curdate -= timedelta(8 - (4-today.weekday()) % 7)
+    # If that Friday is not in a pay week, back up another week
+    if ((curdate - date(2020, 12, 25)).days % 14) != 0:
+        curdate -= timedelta(days=7)
+    enddate = Dnp[-1] + timedelta(days=1)
+    while curdate < enddate:
+        nxtdate = date(*increment_biweekly(curdate.year, curdate.month, curdate.day))
+        idx = np.where((Dnp >= curdate) & (Dnp < nxtdate))
+        try:
+            BB.append(Bnp[idx[0][0]])
+            DB.append(curdate)
+        except IndexError:
+            print("WARNING", curdate, nxtdate)
+        curdate = nxtdate
     DB.append(date.today())
     BB.append(Bnp[-1])
     DBnp = np.array(DB)
@@ -292,46 +359,96 @@ DNnp = np.array(DN)
 BNnp = np.array(BN)
 
 # Plot net worth
-plt.figure("Net Worth")
-plt.title("Net Worth ({:+,.2f})".format(BNnp[-1]).replace("+", "+$").replace("-", "-$"))
+plt.figure("Net Worth Daily")
+plt.title("Net Worth Daily ({:+,.2f})".format(BNnp[-1]).replace("+", "+$").replace("-", "-$"))
 plt.xlabel("Date")
 plt.ylabel("Value ({:}$)".format(scale_yaxis(BNnp)))
 plt.fill_between(DNnp, select_negative(BNnp), 0, step="post", color="tab:red", alpha=0.25)
 plt.fill_between(DNnp, select_positive(BNnp), 0, step="post", color="tab:green", alpha=0.25)
 plt.step(DNnp, BNnp, where="post")
+#plt.xlim(DNnp[0], DNnp[-1])
 
-# Plot net worth monthly delta bars
-DNBnp, BNBnp = compute_deltas(DNnp, BNnp)
-plt.figure("Net Worth Monthly Deltas")
-plt.title("Net Worth Monthly Deltas ({:+,.2f})".format(BNBnp[-1]).replace("+", "+$").replace("-", "-$"))
+# Plot net worth biweekly delta bars
+DNBnp, BNBnp = compute_biweekly_deltas(DNnp, BNnp)
+plt.figure("Net Worth Biweekly")
+plt.title("Net Worth Biweekly ({:+,.2f})".format(BNBnp[-1]).replace("+", "+$").replace("-", "-$"))
 plt.xlabel("Date")
 plt.ylabel("Value ({:}$)".format(scale_yaxis(BNBnp)))
 plt.fill_between(DNBnp, select_negative(BNBnp), 0, step="post", color="tab:red", alpha=0.25)
 plt.fill_between(DNBnp, select_positive(BNBnp), 0, step="post", color="tab:green", alpha=0.25)
 plt.step(DNBnp, BNBnp, where="post")
+#plt.xlim(DNBnp[0], DNBnp[-1])
+
+# Plot net worth monthly delta bars
+DNBnp, BNBnp = compute_monthly_deltas(DNnp, BNnp)
+plt.figure("Net Worth Monthly")
+plt.title("Net Worth Monthly ({:+,.2f})".format(BNBnp[-1]).replace("+", "+$").replace("-", "-$"))
+plt.xlabel("Date")
+plt.ylabel("Value ({:}$)".format(scale_yaxis(BNBnp)))
+plt.fill_between(DNBnp, select_negative(BNBnp), 0, step="post", color="tab:red", alpha=0.25)
+plt.fill_between(DNBnp, select_positive(BNBnp), 0, step="post", color="tab:green", alpha=0.25)
+plt.step(DNBnp, BNBnp, where="post")
+#plt.xlim(DNBnp[0], DNBnp[-1])
+
+# Plot net worth nmonth delta bars
+for months, title in [(4, "Quarterly"), (12, "Yearly")]:
+    DNBnp, BNBnp = compute_nmonth_deltas(DNnp, BNnp, months)
+    plt.figure("Net Worth {:}".format(title))
+    plt.title("Net Worth {:} ({:+,.2f})".format(title, BNBnp[-1]).replace("+", "+$").replace("-", "-$"))
+    plt.xlabel("Date")
+    plt.ylabel("Value ({:}$)".format(scale_yaxis(BNBnp)))
+    plt.fill_between(DNBnp, select_negative(BNBnp), 0, step="post", color="tab:red", alpha=0.25)
+    plt.fill_between(DNBnp, select_positive(BNBnp), 0, step="post", color="tab:green", alpha=0.25)
+    plt.step(DNBnp, BNBnp, where="post")
+    #plt.xlim(DNBnp[0], DNBnp[-1])
 
 # Create selective sum numpy arrays
 DSnp = np.array(DS)
 BSnp = np.array(BS)
 
 # Plot selective sum
-plt.figure("Selective Sum")
-plt.title("Selective Sum ({:+,.2f})".format(BSnp[-1]).replace("+", "+$").replace("-", "-$"))
+plt.figure("Selective Sum Daily")
+plt.title("Selective Sum Daily ({:+,.2f})".format(BSnp[-1]).replace("+", "+$").replace("-", "-$"))
 plt.xlabel("Date")
 plt.ylabel("Value ({:}$)".format(scale_yaxis(BSnp)))
 plt.fill_between(DSnp, select_negative(BSnp), 0, step="post", color="tab:red", alpha=0.25)
 plt.fill_between(DSnp, select_positive(BSnp), 0, step="post", color="tab:green", alpha=0.25)
 plt.step(DSnp, BSnp, where="post")
+#plt.xlim(DSnp[0], DSnp[-1])
 
-# Plot selective sum monthly delta bars
-DSBnp, BSBnp = compute_deltas(DSnp, BSnp)
-plt.figure("Selective Sum Monthly Deltas")
-plt.title("Selective Sum Monthly Deltas ({:+,.2f})".format(BSBnp[-1]).replace("+", "+$").replace("-", "-$"))
+# Plot selective sum biweekly delta bars
+DSBnp, BSBnp = compute_biweekly_deltas(DSnp, BSnp)
+plt.figure("Selective Sum Biweekly")
+plt.title("Selective Sum Biweekly ({:+,.2f})".format(BSBnp[-1]).replace("+", "+$").replace("-", "-$"))
 plt.xlabel("Date")
 plt.ylabel("Value ({:}$)".format(scale_yaxis(BSBnp)))
 plt.fill_between(DSBnp, select_negative(BSBnp), 0, step="post", color="tab:red", alpha=0.25)
 plt.fill_between(DSBnp, select_positive(BSBnp), 0, step="post", color="tab:green", alpha=0.25)
 plt.step(DSBnp, BSBnp, where="post")
+#plt.xlim(DSBnp[0], DSBnp[-1])
+
+# Plot selective sum monthly delta bars
+DSBnp, BSBnp = compute_monthly_deltas(DSnp, BSnp)
+plt.figure("Selective Sum Monthly")
+plt.title("Selective Sum Monthly ({:+,.2f})".format(BSBnp[-1]).replace("+", "+$").replace("-", "-$"))
+plt.xlabel("Date")
+plt.ylabel("Value ({:}$)".format(scale_yaxis(BSBnp)))
+plt.fill_between(DSBnp, select_negative(BSBnp), 0, step="post", color="tab:red", alpha=0.25)
+plt.fill_between(DSBnp, select_positive(BSBnp), 0, step="post", color="tab:green", alpha=0.25)
+plt.step(DSBnp, BSBnp, where="post")
+#plt.xlim(DSBnp[0], DSBnp[-1])
+
+# Plot net worth nmonth delta bars
+for months, title in [(4, "Quarterly"), (12, "Yearly")]:
+    DSBnp, BSBnp = compute_nmonth_deltas(DSnp, BSnp, months)
+    plt.figure("Selective Sum {:}".format(title))
+    plt.title("Selective Sum {:} ({:+,.2f})".format(title, BSBnp[-1]).replace("+", "+$").replace("-", "-$"))
+    plt.xlabel("Date")
+    plt.ylabel("Value ({:}$)".format(scale_yaxis(BSBnp)))
+    plt.fill_between(DSBnp, select_negative(BSBnp), 0, step="post", color="tab:red", alpha=0.25)
+    plt.fill_between(DSBnp, select_positive(BSBnp), 0, step="post", color="tab:green", alpha=0.25)
+    plt.step(DSBnp, BSBnp, where="post")
+    #plt.xlim(DSBnp[0], DSBnp[-1])
 
 # Show all plots
 plt.show()
