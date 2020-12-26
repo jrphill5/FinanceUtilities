@@ -15,6 +15,9 @@ from Schwab import add_series, remove_duplicates
 try: from FinanceAuth import tokenYNAB as token
 except ImportError: token = None
 
+# Define a pay date for biweekly plots
+paydate = date(2020, 12, 24)
+
 # Define account indices to omit from computation
 omitidx = []
 
@@ -280,13 +283,17 @@ def compute_nmonth_deltas(Dnp, Bnp, months):
     curdate = Dnp[-1]
     enddate = Dnp[ 0] - timedelta(days=1)
     while enddate < curdate:
+        DB.append(curdate)
         prvdate = decrement_nmonth(curdate, months)
         idx = np.where((Dnp > prvdate) & (Dnp <= curdate))
-        try:
+        if len(idx[0]) > 0:
             BB.append(Bnp[idx[0][-1]])
-            DB.append(curdate)
-        except IndexError:
-            print("WARNING", curdate, prvdate)
+        elif len(BB) > 0:
+            BB.append(BB[-1])
+            print("WARNING ({:}monthly): Using previous value for {:} to {:}".format(months, curdate, prvdate))
+        else:
+            BB.append(0.)
+            print("WARNING ({:}monthly): Using null value for {:} to {:}".format(months, curdate, prvdate))
         curdate = prvdate
     DB.append(Dnp[0])
     BB.append(Bnp[0])
@@ -302,13 +309,17 @@ def compute_monthly_deltas(Dnp, Bnp):
     curdate = Dnp[ 0].replace(day=1)
     enddate = increment_nmonth(Dnp[-1], 1).replace(day=1)
     while curdate < enddate:
+        DB.append(curdate)
         nxtdate = increment_nmonth(curdate, 1)
         idx = np.where((Dnp >= curdate) & (Dnp < nxtdate))
-        try:
+        if len(idx[0]) > 0:
             BB.append(Bnp[idx[0][0]])
-            DB.append(curdate)
-        except IndexError:
-            print("WARNING", curdate, nxtdate)
+        elif len(BB) > 0:
+            BB.append(BB[-1])
+            print("WARNING (monthly): Using previous value for {:} to {:}".format(curdate, nxtdate))
+        else:
+            BB.append(0.)
+            print("WARNING (monthly): Using null value for {:} to {:}".format(curdate, nxtdate))
         curdate = nxtdate
     DB.append(date.today())
     BB.append(Bnp[-1])
@@ -317,25 +328,29 @@ def compute_monthly_deltas(Dnp, Bnp):
     BBnp = np.append(BBnp[1:] - BBnp[:-1], BBnp[-1] - BBnp[-2])
     return DBnp, BBnp
 
-# Aligned to biweekly Friday pay days
+# Aligned to biweekly pay days
 def compute_biweekly_deltas(Dnp, Bnp):
     DB = []; BB = []
     curdate = Dnp[0]
-    # If not currently Friday, back up to previous Friday
-    if curdate.weekday() != 4:
-        curdate -= timedelta(8 - (4-today.weekday()) % 7)
-    # If that Friday is not in a pay week, back up another week
-    if ((curdate - date(2020, 12, 25)).days % 14) != 0:
+    # If not currently pay day of week, back up to previous pay day of week
+    if curdate.weekday() != paydate.weekday():
+        curdate -= timedelta(8 - (paydate.weekday()-today.weekday()) % 7)
+    # If that day is not in a pay week, back up another week
+    if ((curdate - paydate).days % 14) != 0:
         curdate -= timedelta(days=7)
     enddate = Dnp[-1] + timedelta(days=1)
     while curdate < enddate:
+        DB.append(curdate)
         nxtdate = date(*increment_biweekly(curdate.year, curdate.month, curdate.day))
         idx = np.where((Dnp >= curdate) & (Dnp < nxtdate))
-        try:
+        if len(idx[0]) > 0:
             BB.append(Bnp[idx[0][0]])
-            DB.append(curdate)
-        except IndexError:
-            print("WARNING", curdate, nxtdate)
+        elif len(BB) > 0:
+            BB.append(BB[-1])
+            print("WARNING (biweekly): Using previous value for {:} to {:}".format(curdate, nxtdate))
+        else:
+            BB.append(0.)
+            print("WARNING (biweekly): Using null value for {:} to {:}".format(curdate, nxtdate))
         curdate = nxtdate
     DB.append(date.today())
     BB.append(Bnp[-1])
