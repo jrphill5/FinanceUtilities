@@ -57,9 +57,9 @@ class ThriftSavingsPlan:
 
 	# POST values to remote webserver and download CSV reply:
 	def downloadData(self):
-		dateFormat = '%m/%d/%Y'
-		url = 'https://www.tsp.gov/InvestmentFunds/FundPerformance/index.html'
-		data = {'whichButton': 'CSV', 'startdate': self.dtp.strftime(dateFormat), 'enddate': self.dte.strftime(dateFormat)}
+		dateFormat = '%Y%m%d'
+		url = 'https://secure.tsp.gov/components/CORS/getSharePrices.html'
+		data = {'startdate': self.dtp.strftime(dateFormat), 'enddate': self.dte.strftime(dateFormat), 'Lfunds': '1', 'InvFunds': '1', 'format': 'CSV', 'download': '1'}
 		response = requests.post(url, data=data)
 
 		if response.status_code == 200:
@@ -112,7 +112,7 @@ if __name__ == "__main__":
 	else:
 		funds = sys.argv[1:]
 
-	funds = [fund.upper() + ' Fund' for fund in funds]
+	funds = [fund.upper() for fund in funds]
 
 	# Define image path in same directory as this script:
 	imgpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'images', 'tsp')
@@ -130,4 +130,4 @@ if __name__ == "__main__":
 		fp = FinancePlot.FinancePlot('Thrift Savings Plan', TSP.dd, imgpath)
 
 		# Plot each TSP fund and their SMAs and signals:
-		fp.plotSignals(TSP, data['Date'], data[fund], 0, fund, 'EWMA')
+		fp.plotSignals(TSP, data['Date'], data[fund], 0, fund + ' Fund', 'EWMA')
