@@ -383,7 +383,7 @@ for title, D, B in [("Net Worth", DN, BN), ("Selective Sum", DS, BS)]:
     #plt.xlim(DBnp[0], DBnp[-1])
 
     # Plot nmonth delta bars
-    for months, subtitle, alignday in [(1, "Monthly", 1), (4, "Quarterly", None), (12, "Yearly", None)]:
+    for months, subtitle, alignday in [(1, "Monthly", 1), (3, "Quarterly", None), (12, "Yearly", None)]:
         DBnp, BBnp = compute_nmonth_deltas(Dnp, Bnp, months, alignday)
         plt.figure("{:} {:} Deltas".format(title, subtitle))
         plt.title("{:} {:} Deltas ({:+,.2f})".format(title, subtitle, BBnp[-1]).replace("+", "+$").replace("-", "-$"))
