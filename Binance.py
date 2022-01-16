@@ -1,7 +1,7 @@
 import os, collections
 import requests, json
-import hmac, hashlib, time
-from datetime import datetime
+import hmac, hashlib
+from datetime import datetime, timezone
 
 # Create file called binanceapi.py and define api_sec, api_key strings
 from binanceapi import api_sec, api_key
@@ -16,6 +16,24 @@ units["USDC"] = (15, 5)
 units["BTC"]  = (15, 8)
 
 api_url = "https://api.binance.us/api/v3/"
+
+def create_timestamp(year=None, month=None, day=None, hour=None, minute=None, second=None):
+    if year is None and month is None and day is None and hour is None and minute is None and second is None:
+        dt = datetime.now(tz=timezone.utc)
+    else:
+        if hour   is None: hour   = 0
+        if minute is None: minute = 0
+        if second is None: second = 0
+        dt = datetime(year=year, month=month, day=day, hour=hour, minute=minute, second=second, tzinfo=timezone.utc)
+    dt = dt.replace(tzinfo=timezone.utc)
+    return int(1000*dt.timestamp())
+
+def create_datetime(timestamp=None):
+    if timestamp is None:
+        dt = datetime.now(tz=timezone.utc)
+    else:
+        dt = datetime.utcfromtimestamp(timestamp/1000.)
+    return dt.replace(tzinfo=timezone.utc)
 
 def verify_response(r):
     if r.status_code != 200:
@@ -34,12 +52,12 @@ def print_used_requests(r):
                 time_value  = time_period[:-1]
                 print("  %-2d %-6s -> %6d" % (int(time_value), time_interval_map[time_unit], int(r.headers[head])))
 
-def request_data_without_key(endpoint, params=None):
+def request_data_without_key(endpoint, params={}):
     r = requests.get(os.path.join(api_url, endpoint), params=params)
     verify_response(r)
     j = json.loads(r.text)
     if debug: print_used_requests(r)
-    return r, j
+    return j
 
 def sign_query(payload):
     query = '&'.join(["{}={}".format(k, v) for (k, v) in payload])
@@ -48,7 +66,7 @@ def sign_query(payload):
 
 def request_data_with_key(endpoint, params={}):
     headers = {"x-mbx-apikey": api_key}
-    params['timestamp'] = int(round(time.time()) * 1000)
+    params['timestamp'] = create_timestamp()
     payload = []
     for k in sorted(params):
         payload.append((k, params[k]))
@@ -57,10 +75,10 @@ def request_data_with_key(endpoint, params={}):
     verify_response(r)
     j = json.loads(r.text)
     if debug: print_used_requests(r)
-    return r, j
+    return j
 
 def request_ticker_prices():
-    r, j = request_data_without_key("ticker/price")
+    j = request_data_without_key("ticker/price")
 
     data = {}
     for item in j:
@@ -94,13 +112,13 @@ def request_account_info():
     print()
     print("================================= ACCOUNT INFO ================================")
     print()
-    r, j = request_data_with_key('account')
+    j = request_data_with_key('account')
     for item in sorted(j):
         if item == 'updateTime':
             print("%-{}s %s".format(16) % (item, datetime.fromtimestamp(int(j['updateTime'])/1000.)))
         elif item != 'balances':
             print("%-{}s %s".format(16) % (item, j[item]))
-    return r, j
+    return j
 
 def get_holdings(j, prices=None):
     print("balances")
@@ -126,12 +144,21 @@ def get_holdings(j, prices=None):
     print("%-{}s %.6f USD".format(16) % ("totalValue", total))
     return bals
 
+def get_historical_value(symbol, year=None, month=None, day=None, hour=None, minute=None, second=None):
+    params = {}
+    params['limit'] = 1
+    params['interval'] = '1m'
+    params['endTime'] = create_timestamp(year, month, day, hour, minute, second)
+    params['symbol'] = symbol
+    j = request_data_without_key('klines', params=params)
+    return j[-1]
+
 if __name__ == "__main__":
 
     print()
     print("=============================== EXCHANGE INFO =================================")
     print()
-    r, j = request_data_without_key("exchangeInfo")
+    j = request_data_without_key("exchangeInfo")
     for k in j:
         if k == 'timezone':
             print("%s: %s" % (k, j['timezone']))
@@ -157,11 +184,11 @@ if __name__ == "__main__":
     prices = request_ticker_prices()
     print_ticker_table(prices)
 
-    r, j = request_account_info()
+    j = request_account_info()
     bals = get_holdings(j, prices)
 
     print("24hr history")
     for bal in bals:
         if bal == 'USD': continue
-        r, j = request_data_without_key("ticker/24hr", params={'symbol': '%sUSD' % bal})
+        j = request_data_without_key("ticker/24hr", params={'symbol': '%sUSD' % bal})
         print(" %-5s -> O: %12.6f, M: %12.6f, C: %12.6f, D: %+7.2f/%+7.2f%%" % (bal, float(j['prevClosePrice']), float(j['weightedAvgPrice']), float(j['lastPrice']), float(j['priceChange']), float(j['priceChangePercent'])))

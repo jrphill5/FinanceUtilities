@@ -1,8 +1,11 @@
+import sqlite3, sys, zlib
 from Binance import request_ticker_prices, request_account_info, get_holdings
 
-prices = request_ticker_prices()
-r, j = request_account_info()
-bals = get_holdings(j, prices)
+con = sqlite3.connect('binance.db')
+cur = con.cursor()
+cur.execute("CREATE TABLE IF NOT EXISTS binance (id TEXT PRIMARY KEY UNIQUE, datetime TEXT, category TEXT, operation TEXT, pass TEXT, pqty REAL, pval REAL, bass TEXT, bqty REAL, bval REAL, qass TEXT, qqty REAL, qval REAL, fass TEXT, fqty REAL, fval real)")
+
+bals = get_holdings(request_account_info(), request_ticker_prices())
 
 print()
 print("===============================================================================")
@@ -52,11 +55,15 @@ with open(filename, 'r', encoding='utf-8-sig') as fh:
         print("%-21s" % datum[head.index('Time')].split('.')[0], end='')
         print("%-14s" % datum[head.index('Category')], end='')
         print("%-15s" % datum[head.index('Operation')], end='')
+        row = [datum[head.index('Time')].split('.')[0], datum[head.index('Category')], datum[head.index('Operation')]]
         for asset in assets:
             parse_float(datum, asset_prefix+asset,              1e-16)
             parse_float(datum, asset_prefix+asset+asset_suffix, 1e-16)
             print_cell(asset_prefix+asset,              14, 8, asset, 4)
             print_cell(asset_prefix+asset+asset_suffix, 12, 6, 'USD', 3)
+            row.append(datum[head.index(asset)])
+            row.append(datum[head.index(asset_prefix+asset)])
+            row.append(datum[head.index(asset_prefix+asset+asset_suffix)])
         print()
         for asset in assets:
             if head.index(asset) not in datum:
@@ -65,31 +72,43 @@ with open(filename, 'r', encoding='utf-8-sig') as fh:
                 basis[datum[head.index(asset)]] = 0.
         for i, v in enumerate(datum):
             data[head[i]].append(datum[i])
+        h = ["%08X" % zlib.crc32(b','.join([str(x).encode() for x in row]))]
+        cur.execute("INSERT OR IGNORE INTO binance VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", h+row)
 
-for t, o, pa, pv, pb, ba, bv, bb, qa, qv, qb, fa, fv, fb in zip(data['Time'], data['Operation'],
-        data['Primary_Asset'], data['Realized_Amount_For_Primary_Asset'], data['Realized_Amount_For_Primary_Asset_In_USD_Value'],
-        data['Base_Asset'],    data['Realized_Amount_For_Base_Asset'],    data['Realized_Amount_For_Base_Asset_In_USD_Value'],
-        data['Quote_Asset'],   data['Realized_Amount_For_Quote_Asset'],   data['Realized_Amount_For_Quote_Asset_In_USD_Value'],
-        data['Fee_Asset'],     data['Realized_Amount_For_Fee_Asset'],     data['Realized_Amount_For_Fee_Asset_In_USD_Value']):
-    sign = +1; invert = +1
-    if   "Sell" in o or "Send"    in o or "Withdrawal" in o: sign = -1
-    elif "Buy"  in o or "Receive" in o or "Deposit"    in o or "Rewards" in o or "Earn" in o: sign = +1
-    else: print("[WARN] %s not defined" % o)
-    if "USD"  in qa: invert = -1
+con.commit()
 
-    if qb: invest[ba] += sign*float(qb)
-    if fb: invest[ba] += float(fb)
+cur.execute("SELECT * FROM binance ORDER BY datetime")
+names = [desc[0] for desc in cur.description]
+for row in cur.fetchall():
+    h, t, c, o, pa, pq, pv, ba, bq, bv, qa, qq, qv, fa, fq, fv = row
+    sign = None;
+    for verb in ['Sell', 'Send', 'Withdrawal']:
+        if verb in o: sign = -1
+    for verb in ['Buy',  'Receive', 'Deposit', 'Rewards', 'Earn']:
+        if verb in o: sign = +1
+    if sign is None:
+        sign = +1
+        print("[WARN] %s not defined" % o)
 
-    if pv: wallet[pa] += sign*float(pv)
-    if bv: wallet[ba] += sign*float(bv)
-    if qv: wallet[qa] += invert*sign*float(qv)
-    if fv: wallet[fa] -= float(fv)
+    if "USD" in qa: inv = -1
+    else:           inv = +1
 
-    if pb: basis[pa] += sign*float(pb)
-    if pa and not pb and "Deposit" not in o:
-        print("[WARN] %s %s on %s has no basis" % (pa, o,t))
-    if qb: basis[ba] += sign*float(qb)
-    if fb: basis[ba] += float(fb)
+    if qv: invest[ba] +=     sign*float(qv)
+    if fv: invest[ba] +=          float(fv)
+
+    if pq: wallet[pa] +=     sign*float(pq)
+    if bq: wallet[ba] +=     sign*float(bq)
+    if qq: wallet[qa] += inv*sign*float(qq)
+    if fq: wallet[fa] -=          float(fq)
+
+    if pv: basis[pa]  +=     sign*float(pv)
+    if qv: basis[ba]  +=     sign*float(qv)
+    if fv: basis[ba]  +=          float(fv)
+
+    if pa and not pv and "Deposit" not in o:
+        print("[WARN] %s %s on %s has no basis" % (pa, o, t))
+
+con.close()
 
 print()
 value = sum([v['V'] for k, v in bals.items()])
