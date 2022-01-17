@@ -1,5 +1,5 @@
 import sqlite3, zlib
-from Binance import request_ticker_prices, request_account_info, get_holdings
+from Binance import request_ticker_prices, request_account_info, get_holdings, get_historical_value
 from datetime import datetime, timezone
 
 datefmt = '%Y-%m-%d %H:%M:%S'
@@ -26,23 +26,23 @@ basis  = {}
 invest = {}
 wallet = {}
 
-def print_cell(column, column_width, precision, asset, asset_width):
-    if datum[head.index(column)] is None:
+def print_cell(value, column_width, precision, asset, asset_width):
+    if value is None:
         print("%{}s".format(column_width) % '', end='')
+    else:
+        print("%{}.{}f".format(column_width, precision) % value, end='')
+    if asset is None or value is None:
         print(" %-{}s".format(asset_width) % '', end='')
     else:
-        print("%{}.{}f".format(column_width, precision) % datum[head.index(column)], end=''),
-        if asset in head:
-            print(" %-{}s".format(asset_width) % datum[head.index(asset)], end='')
-        else:
-            print(" %-{}s".format(asset_width) % asset, end='')
+        print(" %-{}s".format(asset_width) % asset, end='')
 
-def parse_float(datum, column, tolerance):
+def parse_float(value, tolerance):
     try:
-        datum[head.index(column)] = float(datum[head.index(column)])
-        if abs(datum[head.index(column)]) < tolerance: raise ValueError
+        value = float(value)
+        if abs(value) < tolerance: raise ValueError
     except ValueError:
-        datum[head.index(column)] = None
+        value = None
+    return value
 
 def print_centered(string, width, char='-', end=None):
     pad = (width-len(string))//2
@@ -58,47 +58,62 @@ def print_table_header(cols, char, sep, ind=0):
 def print_value(val, wid, pre, bef='', aft='', end=None):
     print(("%+{}.{}f%s".format(wid, pre) % (val, aft)).replace("+", "+{}".format(bef)).replace("-", "-{}".format(bef)), end=end)
 
-head = []
-data = {}
 with open(filename, 'r', encoding='utf-8-sig') as fh:
     head = [x.strip() for x in fh.readline().split(',')]
-    for item in head: data[item] = []
-    for i, (col, wid) in enumerate([("DATE/TIME", 19), ("CATEGORY", 12), ("OPERATION", 15), ("PRIMARY_ASSET", 33), ("BASE_ASSET", 33), ("QUOTE_ASSET", 33), ("FEE_ASSET", 33)]):
-        if i != 0: print("  ", end='')
-        print_centered(col, wid, end='')
-    print()
     for line in fh:
         if not line.strip(): continue
         if 'EXIT' in line: break
         datum = [x.strip().replace('""', '') for x in line.split(',')]
         dt = datetime.strptime(datum[head.index('Time')].split('.')[0], datefmt).replace(tzinfo=timezone.utc)
         datum[head.index('Time')] = dt.strftime(datefmt)
-        row = []
-        for fmt, idx in [("%-21s", 'Time'), ("%-14s", 'Category'), ("%-15s", 'Operation')]:
-            print(fmt % datum[head.index(idx)], end='')
+        row = []; hashrow = []
+        for idx in ['Time', 'Category', 'Operation']:
             row.append(datum[head.index(idx)])
+            hashrow.append(datum[head.index(idx)])
         for asset in assets:
             row.append(datum[head.index(asset)])
-            for idx, ass, colwid, pre, asswid in [(asset_prefix+asset, asset, 14, 8, 4), (asset_prefix+asset+asset_suffix, 'USD', 12, 6, 3)]:
-                parse_float(datum, idx, 1e-16)
-                print_cell(idx, colwid, pre, ass, asswid)
+            for idx, ass, colwid, pre, asswid, hashinc in [(asset_prefix+asset, asset, 14, 8, 4, True), (asset_prefix+asset+asset_suffix, 'USD', 12, 6, 3, False)]:
+                datum[head.index(idx)] = parse_float(datum[head.index(idx)], 1e-16)
                 row.append(datum[head.index(idx)])
-            if head.index(asset) not in datum:
-                wallet[datum[head.index(asset)]] = 0.
-                invest[datum[head.index(asset)]] = 0.
-                basis[datum[head.index(asset)]] = 0.
-        print()
-        for i, v in enumerate(datum):
-            data[head[i]].append(v)
-        h = ["%08X" % zlib.crc32(b','.join([str(x).encode() for x in row]))]
+                if hashinc: hashrow.append(datum[head.index(idx)])
+        h = ["%08X" % zlib.crc32(b','.join([str(x).encode() for x in hashrow]))]
         cur.execute("INSERT OR IGNORE INTO binance VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", h+row)
 
 con.commit()
 
 cur.execute("SELECT * FROM binance ORDER BY datetime")
-names = [desc[0] for desc in cur.description]
-for row in cur.fetchall():
-    h, t, c, o, pa, pq, pv, ba, bq, bv, qa, qq, qv, fa, fq, fv = row
+for h, t, c, o, pa, pq, pv, ba, bq, bv, qa, qq, qv, fa, fq, fv in cur.fetchall():
+    if pa and not pv and pa != 'USD':
+        print("[WARN] %s %s on %s has no basis (assuming " % (pa, o, t), end='')
+        dt = datetime.strptime(t, datefmt).replace(tzinfo=timezone.utc)
+        value = get_historical_value('%sUSD' % pa, year=dt.year, month=dt.month, day=dt.day, hour=dt.hour, minute=dt.minute, second=dt.second)[4]
+        pv = float(value)*float(pq)
+        print("%.8f %s = $%.8f)" % (pq, pa, pv))
+        cur.execute("UPDATE binance SET pval = ? WHERE id = ?", (pv, h))
+
+con.commit()
+
+for i, (col, wid) in enumerate([("DATE/TIME", 19), ("CATEGORY", 12), ("OPERATION", 15), ("PRIMARY_ASSET", 33), ("BASE_ASSET", 33), ("QUOTE_ASSET", 33), ("FEE_ASSET", 33)]):
+    if i != 0: print(' '*2, end='')
+    print_centered(col, wid, end='')
+print()
+
+cur.execute("SELECT * FROM binance ORDER BY datetime")
+for h, t, c, o, pa, pq, pv, ba, bq, bv, qa, qq, qv, fa, fq, fv in cur.fetchall():
+
+    if pa not in wallet: wallet[pa] = invest[pa] = basis[pa] = 0.
+    if ba not in wallet: wallet[ba] = invest[ba] = basis[ba] = 0.
+    if qa not in wallet: wallet[qa] = invest[qa] = basis[qa] = 0.
+    if fa not in wallet: wallet[fa] = invest[fa] = basis[fa] = 0.
+
+    for fmt, val in [("%-21s", t), ("%-14s", c), ("%-15s", o)]:
+        print(fmt % val, end='')
+    print_cell(pq, 14, 8, pa, 4); print_cell(pv, 12, 6, 'USD', 3)
+    print_cell(bq, 14, 8, ba, 4); print_cell(bv, 12, 6, 'USD', 3)
+    print_cell(qq, 14, 8, qa, 4); print_cell(qv, 12, 6, 'USD', 3)
+    print_cell(fq, 14, 8, fa, 4); print_cell(fv, 12, 6, 'USD', 3)
+    print()
+
     sign = None;
     for verb in ['Sell', 'Send', 'Withdrawal']:
         if verb in o: sign = -1
@@ -106,7 +121,7 @@ for row in cur.fetchall():
         if verb in o: sign = +1
     if sign is None:
         sign = +1
-        print("[WARN] %s not defined" % o)
+        print("[WARN] %s operation not defined" % o)
 
     if "USD" in qa: inv = -1
     else:           inv = +1
@@ -123,14 +138,12 @@ for row in cur.fetchall():
     if qv: basis[ba]  +=     sign*float(qv)
     if fv: basis[ba]  +=          float(fv)
 
-    if pa and not pv and "Deposit" not in o:
-        print("[WARN] %s %s on %s has no basis" % (pa, o, t))
-
 con.close()
 
 print()
 value = sum([v['V'] for k, v in bals.items()])
-print(("Cash: $%.2f $%.2f $%+.2f %+.2f%%" % (basis['USD'], value, value-basis['USD'], 100.*(value-basis['USD'])/basis['USD'])).replace("$+", "+$").replace("$-", "-$"))
+print(("Cash: $%.2f $%.2f $%+.2f " % (basis['USD'], value, value-basis['USD'])).replace("$+", "+$").replace("$-", "-$"), end='')
+if abs(basis['USD']) > 1e-8: print("%+.2f%%" % (100.*(value-basis['USD'])/basis['USD']))
 
 print()
 print_centered(" WALLET ", 35, '=')
