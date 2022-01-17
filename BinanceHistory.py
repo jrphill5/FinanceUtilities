@@ -1,9 +1,12 @@
-import sqlite3, sys, zlib
+import sqlite3, zlib
 from Binance import request_ticker_prices, request_account_info, get_holdings
+from datetime import datetime, timezone
+
+datefmt = '%Y-%m-%d %H:%M:%S'
 
 con = sqlite3.connect('binance.db')
 cur = con.cursor()
-cur.execute("CREATE TABLE IF NOT EXISTS binance (id TEXT PRIMARY KEY UNIQUE, datetime TEXT, category TEXT, operation TEXT, pass TEXT, pqty REAL, pval REAL, bass TEXT, bqty REAL, bval REAL, qass TEXT, qqty REAL, qval REAL, fass TEXT, fqty REAL, fval real)")
+cur.execute("CREATE TABLE IF NOT EXISTS binance (id TEXT PRIMARY KEY UNIQUE, datetime TEXT, category TEXT, operation TEXT, pass TEXT, pqty REAL, pval REAL, bass TEXT, bqty REAL, bval REAL, qass TEXT, qqty REAL, qval REAL, fass TEXT, fqty REAL, fval REAL)")
 
 bals = get_holdings(request_account_info(), request_ticker_prices())
 
@@ -41,37 +44,52 @@ def parse_float(datum, column, tolerance):
     except ValueError:
         datum[head.index(column)] = None
 
+def print_centered(string, width, char='-', end=None):
+    pad = (width-len(string))//2
+    print("%s%s%s" % (char*pad, string, char*(pad+(width-len(string))%2)), end=end)
+
+def print_table_header(cols, char, sep, ind=0):
+    for i, (col, wid) in enumerate(cols):
+        if i == 0: print(' '*ind, end='')
+        else:      print(' '*sep, end='')
+        print_centered(col, wid, char, end='')
+    print()
+
+def print_value(val, wid, pre, bef='', aft='', end=None):
+    print(("%+{}.{}f%s".format(wid, pre) % (val, aft)).replace("+", "+{}".format(bef)).replace("-", "-{}".format(bef)), end=end)
+
 head = []
 data = {}
 with open(filename, 'r', encoding='utf-8-sig') as fh:
     head = [x.strip() for x in fh.readline().split(',')]
-    for item in head:
-        data[item] = []
-    print("-----DATE/TIME-----  --CATEGORY--  ---OPERATION---  ----------PRIMARY_ASSET----------  -----------BASE_ASSET------------  -----------QUOTE_ASSET-----------  ------------FEE_ASSET------------")
+    for item in head: data[item] = []
+    for i, (col, wid) in enumerate([("DATE/TIME", 19), ("CATEGORY", 12), ("OPERATION", 15), ("PRIMARY_ASSET", 33), ("BASE_ASSET", 33), ("QUOTE_ASSET", 33), ("FEE_ASSET", 33)]):
+        if i != 0: print("  ", end='')
+        print_centered(col, wid, end='')
+    print()
     for line in fh:
         if not line.strip(): continue
         if 'EXIT' in line: break
         datum = [x.strip().replace('""', '') for x in line.split(',')]
-        print("%-21s" % datum[head.index('Time')].split('.')[0], end='')
-        print("%-14s" % datum[head.index('Category')], end='')
-        print("%-15s" % datum[head.index('Operation')], end='')
-        row = [datum[head.index('Time')].split('.')[0], datum[head.index('Category')], datum[head.index('Operation')]]
+        dt = datetime.strptime(datum[head.index('Time')].split('.')[0], datefmt).replace(tzinfo=timezone.utc)
+        datum[head.index('Time')] = dt.strftime(datefmt)
+        row = []
+        for fmt, idx in [("%-21s", 'Time'), ("%-14s", 'Category'), ("%-15s", 'Operation')]:
+            print(fmt % datum[head.index(idx)], end='')
+            row.append(datum[head.index(idx)])
         for asset in assets:
-            parse_float(datum, asset_prefix+asset,              1e-16)
-            parse_float(datum, asset_prefix+asset+asset_suffix, 1e-16)
-            print_cell(asset_prefix+asset,              14, 8, asset, 4)
-            print_cell(asset_prefix+asset+asset_suffix, 12, 6, 'USD', 3)
             row.append(datum[head.index(asset)])
-            row.append(datum[head.index(asset_prefix+asset)])
-            row.append(datum[head.index(asset_prefix+asset+asset_suffix)])
-        print()
-        for asset in assets:
+            for idx, ass, colwid, pre, asswid in [(asset_prefix+asset, asset, 14, 8, 4), (asset_prefix+asset+asset_suffix, 'USD', 12, 6, 3)]:
+                parse_float(datum, idx, 1e-16)
+                print_cell(idx, colwid, pre, ass, asswid)
+                row.append(datum[head.index(idx)])
             if head.index(asset) not in datum:
                 wallet[datum[head.index(asset)]] = 0.
                 invest[datum[head.index(asset)]] = 0.
                 basis[datum[head.index(asset)]] = 0.
+        print()
         for i, v in enumerate(datum):
-            data[head[i]].append(datum[i])
+            data[head[i]].append(v)
         h = ["%08X" % zlib.crc32(b','.join([str(x).encode() for x in row]))]
         cur.execute("INSERT OR IGNORE INTO binance VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", h+row)
 
@@ -115,46 +133,35 @@ value = sum([v['V'] for k, v in bals.items()])
 print(("Cash: $%.2f $%.2f $%+.2f %+.2f%%" % (basis['USD'], value, value-basis['USD'], 100.*(value-basis['USD'])/basis['USD'])).replace("$+", "+$").replace("$-", "-$"))
 
 print()
-print("============== WALLET ==============")
-print("       ---OFFLINE---   ---BINANCE---")
+print_centered(" WALLET ", 35, '=')
+print_table_header([("OFFLINE", 13), ("BINANCE", 13)], '-', 2, 7)
 for k, v in wallet.items():
     if k:
-        print("%-4s %15.8f " % (k, v), end='')
+        print("%-4s " % k, end='')
+        print_value(v, 15, 8, end='')
         if k in bals:
-            print("%15.8f" % bals[k]['T'], end='')
-            if abs(bals[k]['T'] - v) > 1e-8: print(" *", end='')
+            print_value(bals[k]['T'], 15, 8, end='')
+            if abs(bals[k]['T']-v) > 1e-8: print(" *", end='')
         else:
-            print("%15.8f" % 0, end='')
-            if v > 1e-8: print(" *", end='')
+            print_value(0, 15, 8, end='')
+            if abs(v) > 1e-8: print(" *", end='')
         print()
 
-print()
-print("========================== INVESTED =========================")
-print("       ----INPUT----  ----VALUE----  ----DELTA----  --DELTA--")
-for k, v in invest.items():
-    if k == 'USD': continue
-    if k:
-        print(("%-4s %+14.6f" % (k, v)).replace("+", "+$").replace("-", "-$"), end='')
-        if k in bals:
-            print(("%+14.6f" % bals[k]['V']).replace("+", "+$").replace("-", "-$"), end='')
-            print(("%+14.6f" % (bals[k]['V']-v)).replace("+", "+$").replace("-", "-$"), end='')
-            if abs(v) < 1e-8: print()
-            else: print("%+10.2f%%" % (100.*(bals[k]['V']-v)/v))
-        else:
-            print(("%+14.6f" % 0.).replace("+", "+$").replace("-", "-$"), end='')
-            print(("%+14.6f" % -v).replace("+", "+$").replace("-", "-$"))
-
-print()
-print("======================== PERFORMANCE ========================")
-print("       ----BASIS----  ----VALUE----  ----DELTA----  --DELTA--")
-for k, v in basis.items():
-    if k == 'USD': continue
-    if k:
-        print(("%-4s %+14.6f" % (k, v)).replace('-', '-$').replace('+', '+$'), end='')
-        if k in bals:
-            print(("%+14.6f" % bals[k]['V']).replace("+", "+$").replace("-", "-$"), end='')
-            print(("%+14.6f" % (bals[k]['V']-v)).replace("+", "+$").replace("-", "-$"), end='')
-            print("%+10.2f%%" % (100.*(bals[k]['V']-v)/v))
-        else:
-            print(("%+14.6f" % 0.).replace("+", "+$").replace("-", "-$"), end='')
-            print(("%+14.6f" % -v).replace("+", "+$").replace("-", "-$"))
+for title, collection in [(" INVESTED ", invest), (" PERFORMANCE ", basis)]:
+    print()
+    print_centered(title, 61, '=')
+    print_table_header([("INPUT", 13), ("VALUE", 13), ("DELTA", 13), ("DELTA", 9)], '-', 2, 7)
+    for k, v in collection.items():
+        if k:
+            if k == 'USD': continue
+            print("%-4s " % k, end='')
+            print_value(v, 15, 6, end='')
+            if k in bals:
+                print_value(bals[k]['V'],   14, 6, bef='$', end='')
+                print_value(bals[k]['V']-v, 14, 6, bef='$', end='')
+                if abs(v) > 1e-8:
+                    print_value(100.*(bals[k]['V']-v)/v, 10, 2, aft='%', end='')
+            else:
+                print_value(0., 14, 6, bef='$', end='')
+                print_value(-v, 14, 6, bef='$', end='')
+            print()
