@@ -211,7 +211,10 @@ for idx, acctname in enumerate(sorted(data)):
 
     # Begin with the working balance returned by the server and work in reverse chronological order
     rbal = data[acctname]['wbal']
-    D = sorted(data[acctname]['trans'])
+    if 'trans' in data[acctname]:
+        D = sorted(data[acctname]['trans'])
+    else:
+        D = []
     B = []
     # Subtract off the daily change moving backwards in time to create a running balance
     for d in reversed(D):
