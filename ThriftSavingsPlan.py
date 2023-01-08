@@ -57,16 +57,20 @@ class ThriftSavingsPlan:
 
 	# POST values to remote webserver and download CSV reply:
 	def downloadData(self):
-		dateFormat = '%Y%m%d'
-		url = 'https://secure.tsp.gov/components/CORS/getSharePrices.html'
-		data = {'startdate': self.dtp.strftime(dateFormat), 'enddate': self.dte.strftime(dateFormat), 'Lfunds': '1', 'InvFunds': '1', 'format': 'CSV', 'download': '1'}
-		response = requests.post(url, data=data)
+		dateFormat = '%Y-%m-%d'
+		url = 'https://www.tsp.gov/data/fund-price-history.csv'
+		data = {'startdate': self.dtp.strftime(dateFormat), 'enddate': self.dte.strftime(dateFormat), 'Lfunds': '1', 'InvFunds': '1', 'download': '1'}
+		head = {'User-agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:30.0)',
+		        'referer':    'https://www.tsp.gov/share-price-history/'}
+		response = requests.get(url, params=data, headers=head)
 
 		if response.status_code == 200:
 			# Read in dataframe from CSV response and sort by date:
 			df = pandas.read_csv(StringIO(response.text))
-			df['date'] = pandas.to_datetime(df['date'], format='%Y-%m-%d')
+			df = df[df.Date.notnull()]
+			df['date'] = pandas.to_datetime(df['Date'], format='%Y-%m-%d')
 			df = df.sort_values('date')
+			df = df.query("%s <= date <= %s" % (self.dtp.strftime('%Y%m%d'), self.dte.strftime('%Y%d%m')))
 
 			# Clean up text in dataframe and create a dictionary:
 			data = {}
@@ -130,4 +134,4 @@ if __name__ == "__main__":
 		fp = FinancePlot.FinancePlot('Thrift Savings Plan', TSP.dd, imgpath)
 
 		# Plot each TSP fund and their SMAs and signals:
-		fp.plotSignals(TSP, data['Date'], data[fund], 0, fund + ' Fund', 'EWMA')
+		fp.plotSignals(TSP, data['Date'], data[fund + ' Fund'], 0, fund + ' Fund', 'EWMA')
