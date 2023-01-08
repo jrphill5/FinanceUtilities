@@ -46,13 +46,14 @@ class AlphaVantage:
 
         # Define data structure for holding quote information:
         data = { 'Date':     [], 'Open':     [], 'High':     [],
-                 'Low':      [], 'Close':    [], 'Volume':   []  }
+                 'Low':      [], 'Close':    [], 'Volume':   [],
+                 'AdjClose': [], 'DivAmnt':  [], 'SplCoeff': []  }
 
         # Populate data structure with information from database:
-        for d, c in zip(stored['Date'], stored['Close']):
+        for d, c in zip(stored['Date'], stored['AdjClose']):
             if d >= self.dtp and d <= self.dte:
                 data['Date'].append(d)
-                data['Close'].append(c)
+                data['AdjClose'].append(c)
 
         # Determine expected and actual trading days:
         acts = [d.strftime('%D') for d in data['Date']]
@@ -72,14 +73,18 @@ class AlphaVantage:
     # Send values to remote webserver and download CSV reply:
     def downloadData(self):
         url    = 'https://www.alphavantage.co/query'
-        params = {'function': 'TIME_SERIES_DAILY', 'symbol': self.symbol, 'outputsize': 'full', 'apikey': apikey}
+        params = {'function': 'TIME_SERIES_DAILY_ADJUSTED', 'symbol': self.symbol, 'outputsize': 'full', 'apikey': apikey}
         resp   = requests.get(url, params=params)
 
         if resp.status_code == 200:
             # Read in JSON from response:
             raw  = resp.json()
 
-            if 'Error Message' not in raw:
+            if len(raw.keys()) == 1 and 'Information' in raw.keys():
+                print(raw['Information'])
+            elif len(raw.keys()) == 1 and 'Note' in raw.keys():
+                print(raw['Note'])
+            elif 'Error Message' not in raw:
                 # Define date and time formats used by AlphaVantage
                 datefmt = '%Y-%m-%d'; datelen = 10
                 timefmt = '%H:%M:%S'; timelen =  8
@@ -99,18 +104,22 @@ class AlphaVantage:
 
                 # Generate dict of lists for data:
                 data = { 'Date':     [], 'Open':     [], 'High':     [],
-                         'Low':      [], 'Close':    [], 'Volume':   []  }
+                         'Low':      [], 'Close':    [], 'Volume':   [],
+                         'AdjClose': [], 'DivAmnt':  [], 'SplCoeff': []  }
 
                 # Populate data structure with information in JSON response:
                 for k, v in sorted(raw['Time Series (Daily)'].items()):
                     date = datetime.strptime(k, datefmt)
                     if date >= self.dtp and date <= self.dte:
-                        data['Date'].append(  date)
-                        data['Open'].append(  float(v['1. open']))
-                        data['High'].append(  float(v['2. high']))
-                        data['Low'].append(   float(v['3. low']))
-                        data['Close'].append( float(v['4. close']))
-                        data['Volume'].append(int(  v['5. volume']))
+                        data['Date'    ].append(      date)
+                        data['Open'    ].append(float(v['1. open']))
+                        data['High'    ].append(float(v['2. high']))
+                        data['Low'     ].append(float(v['3. low']))
+                        data['Close'   ].append(float(v['4. close']))
+                        data['AdjClose'].append(float(v['5. adjusted close']))
+                        data['Volume'  ].append(  int(v['6. volume']))
+                        data['DivAmnt' ].append(float(v['7. dividend amount']))
+                        data['SplCoeff'].append(float(v['8. split coefficient']))
 
                 # Check most recent data for open end funds (such as mutual funds)
                 if self.openEnd:
@@ -121,7 +130,11 @@ class AlphaVantage:
                         # Read in JSON from response:
                         raw  = resp.json()
 
-                        if 'Error Message' not in raw:
+                        if len(raw.keys()) == 1 and 'Information' in raw.keys():
+                            print(raw['Information'])
+                        elif len(raw.keys()) == 1 and 'Note' in raw.keys():
+                            print(raw['Note'])
+                        elif 'Error Message' not in raw:
                             # Store header and parse last updated date and time:
                             head = { 'Info':     raw['Meta Data']['1. Information'],
                                      'Symbol':   raw['Meta Data']['2. Symbol'],
@@ -138,19 +151,22 @@ class AlphaVantage:
 
                             k, v = sorted(raw['Time Series (5min)'].items())[-1]
                             date = datetime.strptime(k, "%s %s" % (datefmt, timefmt))
-                            data['Date'].append(  date)
-                            data['Open'].append(  float(v['1. open']))
-                            data['High'].append(  float(v['2. high']))
-                            data['Low'].append(   float(v['3. low']))
-                            data['Close'].append( float(v['4. close']))
-                            data['Volume'].append(int(  v['5. volume']))
+                            data['Date'    ].append(      date)
+                            data['Open'    ].append(float(v['1. open']))
+                            data['High'    ].append(float(v['2. high']))
+                            data['Low'     ].append(float(v['3. low']))
+                            data['Close'   ].append(float(v['4. close']))
+                            data['AdjClose'].append(float(v['5. adjusted close']))
+                            data['Volume'  ].append(  int(v['6. volume']))
+                            data['DivAmnt' ].append(float(v['7. dividend amount']))
+                            data['SplCoeff'].append(float(v['8. split coefficient']))
 
                 # Store this data in the object:
                 self.head = head
                 self.data = data
 
                 # Insert information into database:
-                self.fd.insertAll(self.symbol, self.data['Date'], self.data['Close'])
+                self.fd.insertAll(self.symbol, self.data['Date'], self.data['AdjClose'])
             else: self.data = None
         else: self.data = None
 
@@ -196,4 +212,4 @@ if __name__ == "__main__":
         fp = FinancePlot.FinancePlot('AlphaVantage', av.dd, imgpath)
 
         # Plot symbol and the SMAs and signals:
-        fp.plotSignals(av, data['Date'], data['Close'], 0, smb, 'EWMA', data['Date'][-1])
+        fp.plotSignals(av, data['Date'], data['AdjClose'], 0, smb, 'EWMA', data['Date'][-1])
