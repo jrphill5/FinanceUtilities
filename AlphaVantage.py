@@ -5,6 +5,8 @@ from datetime import datetime, timedelta
 from FinanceAuth import tokenAlphaVantage as apikey
 import BasicFinance, FinanceDatabase, FinancePlot
 
+function = "TIME_SERIES_DAILY" # "TIME_SERIES_DAILY_ADJUSTED" is a premium endpoint now
+
 class AlphaVantage:
     def __init__(self, symbol, dts = datetime.now() - timedelta(days=365), dte = datetime.now(), nl = 10, nh = 30):
         self.bf = BasicFinance.BasicFinance()
@@ -45,15 +47,25 @@ class AlphaVantage:
         if stored is None: return False
 
         # Define data structure for holding quote information:
-        data = { 'Date':     [], 'Open':     [], 'High':     [],
-                 'Low':      [], 'Close':    [], 'Volume':   [],
-                 'AdjClose': [], 'DivAmnt':  [], 'SplCoeff': []  }
+        if function == "TIME_SERIES_DAILY_ADJUSTED":
+            data = { 'Date':     [], 'Open':     [], 'High':     [],
+                     'Low':      [], 'Close':    [], 'Volume':   [],
+                     'AdjClose': [], 'DivAmnt':  [], 'SplCoeff': []  }
+        else:
+            data = { 'Date':     [], 'Open':     [], 'High':     [],
+                     'Low':      [], 'Close':    [], 'Volume':   []  }
 
         # Populate data structure with information from database:
-        for d, c in zip(stored['Date'], stored['AdjClose']):
-            if d >= self.dtp and d <= self.dte:
-                data['Date'].append(d)
-                data['AdjClose'].append(c)
+        if function == "TIME_SERIES_DAILY_ADJUSTED":
+            for d, c in zip(stored['Date'], stored['AdjClose']):
+                if d >= self.dtp and d <= self.dte:
+                    data['Date'].append(d)
+                    data['AdjClose'].append(c)
+        else:
+            for d, c in zip(stored['Date'], stored['Close']):
+                if d >= self.dtp and d <= self.dte:
+                    data['Date'].append(d)
+                    data['Close'].append(c)
 
         # Determine expected and actual trading days:
         acts = [d.strftime('%D') for d in data['Date']]
@@ -73,7 +85,7 @@ class AlphaVantage:
     # Send values to remote webserver and download CSV reply:
     def downloadData(self):
         url    = 'https://www.alphavantage.co/query'
-        params = {'function': 'TIME_SERIES_DAILY_ADJUSTED', 'symbol': self.symbol, 'outputsize': 'full', 'apikey': apikey}
+        params = {'function': function, 'symbol': self.symbol, 'outputsize': 'full', 'apikey': apikey}
         resp   = requests.get(url, params=params)
 
         if resp.status_code == 200:
@@ -103,9 +115,13 @@ class AlphaVantage:
                     head['Updated'] = datetime(1970, 1, 1)
 
                 # Generate dict of lists for data:
-                data = { 'Date':     [], 'Open':     [], 'High':     [],
-                         'Low':      [], 'Close':    [], 'Volume':   [],
-                         'AdjClose': [], 'DivAmnt':  [], 'SplCoeff': []  }
+                if function == "TIME_SERIES_DAILY_ADJUSTED":
+                    data = { 'Date':     [], 'Open':     [], 'High':     [],
+                             'Low':      [], 'Close':    [], 'Volume':   [],
+                             'AdjClose': [], 'DivAmnt':  [], 'SplCoeff': []  }
+                else:
+                    data = { 'Date':     [], 'Open':     [], 'High':     [],
+                             'Low':      [], 'Close':    [], 'Volume':   []  }
 
                 # Populate data structure with information in JSON response:
                 for k, v in sorted(raw['Time Series (Daily)'].items()):
@@ -116,10 +132,13 @@ class AlphaVantage:
                         data['High'    ].append(float(v['2. high']))
                         data['Low'     ].append(float(v['3. low']))
                         data['Close'   ].append(float(v['4. close']))
-                        data['AdjClose'].append(float(v['5. adjusted close']))
-                        data['Volume'  ].append(  int(v['6. volume']))
-                        data['DivAmnt' ].append(float(v['7. dividend amount']))
-                        data['SplCoeff'].append(float(v['8. split coefficient']))
+                        if function == "TIME_SERIES_DAILY_ADJUSTED":
+                            data['AdjClose'].append(float(v['5. adjusted close']))
+                            data['Volume'  ].append(  int(v['6. volume']))
+                            data['DivAmnt' ].append(float(v['7. dividend amount']))
+                            data['SplCoeff'].append(float(v['8. split coefficient']))
+                        else:
+                            data['Volume'  ].append(  int(v['5. volume']))
 
                 # Check most recent data for open end funds (such as mutual funds)
                 if self.openEnd:
@@ -166,7 +185,10 @@ class AlphaVantage:
                 self.data = data
 
                 # Insert information into database:
-                self.fd.insertAll(self.symbol, self.data['Date'], self.data['AdjClose'])
+                if function == "TIME_SERIES_DAILY_ADJUSTED":
+                    self.fd.insertAll(self.symbol, self.data['Date'], self.data['AdjClose'])
+                else:
+                    self.fd.insertAll(self.symbol, self.data['Date'], self.data['Close'])
             else: self.data = None
         else: self.data = None
 
@@ -212,4 +234,7 @@ if __name__ == "__main__":
         fp = FinancePlot.FinancePlot('AlphaVantage', av.dd, imgpath)
 
         # Plot symbol and the SMAs and signals:
-        fp.plotSignals(av, data['Date'], data['AdjClose'], 0, smb, 'EWMA', data['Date'][-1])
+        if function == "TIME_SERIES_DAILY_ADJUSTED":
+            fp.plotSignals(av, data['Date'], data['AdjClose'], 0, smb, 'EWMA', data['Date'][-1])
+        else:
+            fp.plotSignals(av, data['Date'], data['Close'], 0, smb, 'EWMA', data['Date'][-1])
