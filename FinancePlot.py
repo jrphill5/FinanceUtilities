@@ -68,7 +68,10 @@ class FinancePlot:
 			if self.bf.formatTime(updated) != self.bf.formatTime(datetime(1970, 1, 1)):
 				title += " " + self.bf.formatTime(updated)
 			title += "]"
-		self.fig.canvas.set_window_title("%s %s" % (self.source, fund))
+		try:
+			self.fig.canvas.set_window_title("%s %s" % (self.source, fund))
+		except AttributeError:
+			pass
 		self.ax.set_title(title)
 
 	def plotSignals(self, finObj, t, p, img, fund, avgtype, updateTime=None):
@@ -154,13 +157,13 @@ class FinancePlot:
 
 		# Plot buy and sell crossover signals:
 		if crossovers:
-			try: ax.plot_date(*zip(*[s[1] for s in crossovers  if     s[0]]), mew=1, color='g', mec='k', marker='o', markersize=7.0, label="Buy Signaled")
+			try: ax.plot_date(*zip(*[s[1] for s in crossovers  if     s[0]]), fmt='o', mew=1, color='g', mec='k', markersize=7.0, label="Buy Signaled")
 			except (ValueError, TypeError): print("[WARN] Exception during buy signal plotting")
-			try: ax.plot_date(*zip(*[s[1] for s in crossadjust if     s[0]]), mew=1, color='g', mec='k', marker='X', markersize=8.5, label="Buy Settled")
+			try: ax.plot_date(*zip(*[s[1] for s in crossadjust if     s[0]]), fmt='X', mew=1, color='g', mec='k', markersize=8.5, label="Buy Settled")
 			except (ValueError, TypeError): print("[WARN] Exception during buy settle plotting")
-			try: ax.plot_date(*zip(*[s[1] for s in crossovers  if not s[0]]), mew=1, color='r', mec='k', marker='o', markersize=7.0, label="Sell Signaled")
+			try: ax.plot_date(*zip(*[s[1] for s in crossovers  if not s[0]]), fmt='o', mew=1, color='r', mec='k', markersize=7.0, label="Sell Signaled")
 			except (ValueError, TypeError): print("[WARN] Exception during sell signal plotting")
-			try: ax.plot_date(*zip(*[s[1] for s in crossadjust if not s[0]]), mew=1, color='r', mec='k', marker='X', markersize=8.5, label="Sell Settled")
+			try: ax.plot_date(*zip(*[s[1] for s in crossadjust if not s[0]]), fmt='X', mew=1, color='r', mec='k', markersize=8.5, label="Sell Settled")
 			except (ValueError, TypeError): print("[WARN] Exception during sell settle plotting")
 
 		# Define plot legend and add gridlines:
