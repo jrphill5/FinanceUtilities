@@ -70,7 +70,7 @@ class ThriftSavingsPlan:
 			df = df[df.Date.notnull()]
 			df['date'] = pandas.to_datetime(df['Date'], format='%Y-%m-%d')
 			df = df.sort_values('date')
-			df = df.query("%s <= date <= %s" % (self.dtp.strftime('%Y%m%d'), self.dte.strftime('%Y%d%m')))
+			df = df[df.date.between(self.dtp, self.dte)]
 
 			# Clean up text in dataframe and create a dictionary:
 			data = {}
